@@ -389,9 +389,14 @@ mpraScatter<-function(countsOut, sampleX, sampleY,xmax,ymax, plotSave=T) {
 
 ### Function to produce plots showing the expression fold change vs. normalized tag counts
 # full_output     : Output from dataOut function
-# sample          : Cell Line Type?????                 ### Not 100% about this ###
+# sample          : Cell Type as string
 plot_logFC<-function(full_output, sample) {
-  exp_values<-full_output$sample[full_output$sample[["ctrl_mean"]] > 10 & !is.na(full_output$sample[["ctrl_mean"]]),]
+  for(i in 1:length(full_output)){
+    if(names(full_output[i]) == sample){
+      list_index <- i
+    }
+  }
+  exp_values<-data.frame(full_output[[list_index]][full_output[[list_index]][["ctrl_mean"]] > 10 & !is.na(full_output[[list_index]][["ctrl_mean"]]),])
   exp_values$exp_mean[is.na(exp_values$exp_mean)]<-1
   exp_values$log2FoldChange[is.na(exp_values$log2FoldChange)]<-0
   exp_values$padj[is.na(exp_values$padj)]<-1
@@ -399,10 +404,6 @@ plot_logFC<-function(full_output, sample) {
   exp_values$sig[exp_values$padj <= 0.00001]<-"Active"
   levels(exp_values$sig)<-c("Not Significant", "Active")
   exp_values$sig<-factor(exp_values$sig,levels=c("Not Significant", "Active"))
-  
-  return(class(exp_values))
-  
-  #exp_values <- as.data.frame(exp_values)
   
   tmp_plotA<-ggplot(exp_values,aes(x=ctrl_mean,y=log2FoldChange,color=sig)) +
     theme_bw() + theme(panel.grid.major = element_line(size = .25,colour = rgb(0,0,0,75,maxColorValue=255)), panel.grid.minor = element_blank()) +
