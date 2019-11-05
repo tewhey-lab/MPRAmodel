@@ -188,7 +188,7 @@ dataOut <- function(countsData, attributesData, conditionData, altRef = T){
     outA<-cellSpecificTtest(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef)
     full_output_var[[celltype]]<-outA
     write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)    
-    return(full_output)
+    return(c(full_output, dds_results))
   }
 }
 
@@ -364,7 +364,8 @@ panel.nlm <- function (x, y,  pch = par("pch"), col.lm = "red",  ...) {
 # sampleY         : string of different sample name (column name from counts data)
 # xmax            : maximum x value to include in plot
 # ymax            : maximum y value to include in plot
-mpraScatter<-function(countsOut, sampleX, sampleY,xmax,ymax, plotSave=T) {
+
+mpraScatter<-function(countsOut, sampleX, sampleY,xmax=quantile(countsOut,.99),ymax=quantile(countsOut,.99), plotSave=T) {
   count_df<-as.data.frame(countsOut)
   ggplot_output<-ggplot(count_df, aes_string(sampleX,sampleY)) +
     theme_minimal() +
@@ -390,7 +391,7 @@ mpraScatter<-function(countsOut, sampleX, sampleY,xmax,ymax, plotSave=T) {
 ### Function to produce plots showing the expression fold change vs. normalized tag counts
 # full_output     : Output from dataOut function
 # sample          : Cell Type as string
-plot_logFC<-function(full_output, sample) {
+plot_logFC <- function(full_output, sample) {
   for(i in 1:length(full_output)){
     if(names(full_output[i]) == sample){
       list_index <- i
@@ -439,3 +440,39 @@ plot_logFC<-function(full_output, sample) {
   
   return(list(tmp_plotA,tmp_plotB))
 }
+
+tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, ...){
+  analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef)
+  full_output <- analysis_out[[1]]
+  dds_results <- analysis_out[[2]]
+  
+  #Prepare for mpraScatter
+  counts_out <- counts(dds_results, normalized=T)
+  sample_var <- c()
+  rep1_loc <- grep("_r1", colnames(countsOut))
+  replicate_list <- colnames(countsOut)[x]
+  cell_combinations <- combn(replicate_list,m=2)
+  for(i in rep1_loc){
+    sampleX <- colnames(countsOut)[i]
+    sampleY <- colnames(countsOut)[i+1]
+    mpraScatter(countsOut = counts_out, sampleX, sampleY)
+  }
+  for(combo in dim(cell_combinations)[2]){
+    sampleX <- cell_combinations[1,combo]
+    sampleY <- cell_combinations[2,combo]
+    mpraScatter(countsOut = counts_out, sampleX, sampleY)
+  }
+  
+  #Prepare for plot_logFC
+  for (celltype in levels(colData$condition)) {
+    if(celltype=="DNA" | celltype %in% exclList ) next
+    message(celltype)
+    output_tmp<-full_output[[celltype]]
+    plot_list<-plot_logFC(output_tmp, celltype)
+    ggsave(paste0("plots/logFC_",celltype,".pdf"),plot_list[[1]],units="in",width=8,height=6,device="pdf")
+    ggsave(paste0("plots/logFC_",celltype,"_controls.pdf"),plot_list[[2]],units="in",width=8,height=6,device="pdf")
+  }
+}
+
+
+
