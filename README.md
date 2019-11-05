@@ -1,1 +1,1 @@
-# MPRA-analyze
+# MPRA tag sequencing analysis pipeline
