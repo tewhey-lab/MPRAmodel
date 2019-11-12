@@ -102,8 +102,6 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
   dds_results_orig <- processAnalysis(countsData, conditionData)
   attr_data <- addHaplo(attributesData)
   attribute_ids <- (attr_data[attr_data$project == "negCtrl",])$ID
-  attribute_names <- colnames(attribute_ids)
-  message(attribute_names)
   count_data <- oligoIsolate(countsData)
   cond_data <- conditionStandard(conditionData)
   colnames(count_data) <- row.names(cond_data)
@@ -124,13 +122,13 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
       attribute_ids<-row.names(temp_outputA[!is.na(temp_outputA$pvalue) & temp_outputA$pvalue>0.001,])
     }
   }
-  if(method == "ss"){
-    dds_results <- estimateDispersions(dds_results,fitType='local')
-    dds_results <- nbinomWaldTest(dds_results)
-  }
   if(method == "ro" | method == "nc"){
     dds_results_tmp<-estimateSizeFactors(dds_results[attribute_ids])
     sizeFactors(dds_results)<-sizeFactors(dds_results_tmp)
+  }  
+  if(method == "ss" | method == "ro" | method == "nc"){
+    dds_results <- estimateDispersions(dds_results,fitType='local')
+    dds_results <- nbinomWaldTest(dds_results)
   }
   if(method == "mn"){
     dds_results <- dds_results_orig
@@ -484,8 +482,9 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
   file_prefix <- filePrefix
   analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method)
   cond_data <- conditionStandard(conditionData)
-  full_output <- analysis_out[1]
-  dds_results <- analysis_out[[2]]
+  n <- length(levels(cond_data$condition))
+  full_output <- analysis_out[1:(n-1)]
+  dds_results <- analysis_out[[n]]
   
   message("Plotting correlation tables")
   counts_out <- counts(dds_results, normalized=T)
@@ -545,7 +544,6 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
     if(celltype=="DNA" | celltype %in% exclList ) next
     message(celltype)
     output_tmp<-full_output[[celltype]]
-    message(class(output_tmp))
     plot_list<-plot_logFC(output_tmp, celltype)
     if(plotSave==F){
       plot_list[[1]]
