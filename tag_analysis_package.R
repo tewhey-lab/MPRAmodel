@@ -2,13 +2,11 @@
 
 # Required packages
 install.packages("ggplot2")
-install.packages("stringr")
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 BiocManager::install("DESeq2")
 library(DESeq2)
 library(ggplot2)
-library(stringr)
 
 ###Generate information needed for file outputs later on
 fileDate <- function(){
@@ -24,6 +22,15 @@ fileDate <- function(){
 # attributesData  : table of full attributes, columns should include: ID, SNP, Project, Window, Strand, Allele,
   # Haplotype, Bash
 addHaplo <- function(attributesData){
+  if("Haplotype" %in% colnames(attributesData)){
+    names(attributesData)[names(attributesData) == "Haplotype"] <- "haplotype"
+  }
+  if("Project" %in% colnames(attributesData)){
+    names(attributesData)[names(attributesData) == "Project"] <- "project"
+  }
+  if("Allele" %in% colnames(attributesData)){
+    names(attributesData)[names(attributesData) == "Allele"] <- "allele"
+  }
   if(!("haplotype" %in% colnames(attributesData))){
     attributesData$haplotype <- "NA"
   }
@@ -93,7 +100,10 @@ processAnalysis <- function(countsData, conditionData){
 tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss'){
   dds_results <- processAnalysis(countsData, conditionData)
   dds_results_orig <- processAnalysis(countsData, conditionData)
-  attribute_ids <- addHaplo(attributesData[attributesData$project == "negCtrl",])$ID
+  attr_data <- addHaplo(attributesData)
+  attribute_ids <- (attr_data[attr_data$project == "negCtrl",])$ID
+  attribute_names <- colnames(attribute_ids)
+  message(attribute_names)
   count_data <- oligoIsolate(countsData)
   cond_data <- conditionStandard(conditionData)
   colnames(count_data) <- row.names(cond_data)
@@ -202,8 +212,8 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     outA<-cellSpecificTtest(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef)
     full_output_var[[celltype]]<-outA
     write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)    
-    return(c(full_output, dds_results))
   }
+  return(c(full_output, dds_results))
 }
 
 ### Expand IDs that denote duplicate oligos in count/DESeq results
@@ -346,7 +356,7 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...){
   if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
   text(0.5, 0.5, txt, cex = cex.cor * r)
 }
-
+###
 panel.lm <- function (x, y,  pch = par("pch"), col.lm = "red",  ...) {   
   ymin <- min(y)
   ymax <- max(y)
@@ -360,7 +370,7 @@ panel.lm <- function (x, y,  pch = par("pch"), col.lm = "red",  ...) {
     abline(lm(y[ok]~ x[ok]), 
            col = col.lm, ...)
 }
-
+###
 panel.nlm <- function (x, y,  pch = par("pch"), col.lm = "red",  ...) {   
   ymin <- min(y)
   ymax <- max(y)
@@ -378,7 +388,8 @@ panel.nlm <- function (x, y,  pch = par("pch"), col.lm = "red",  ...) {
 # sampleY         : string of different sample name (column name from counts data)
 # xmax            : maximum x value to include in plot
 # ymax            : maximum y value to include in plot
-mpraScatter<-function(countsOut, sampleX, sampleY,xmax=quantile(countsOut,.99),ymax=quantile(countsOut,.99), plotSave=T) {
+mpraScatter<-function(conditionData, countsOut, sampleX, sampleY,xmax=quantile(countsOut,.99),ymax=quantile(countsOut,.99), plotSave=T) {
+  cond_data <- conditionStandard(conditionData)
   count_df<-as.data.frame(countsOut)
   ggplot_output<-ggplot(count_df, aes_string(sampleX,sampleY)) +
     theme_minimal() +
@@ -388,8 +399,16 @@ mpraScatter<-function(countsOut, sampleX, sampleY,xmax=quantile(countsOut,.99),y
     geom_abline(intercept = 0, slope = 1,linetype = 2, size=.75, color=rgb(255,140,0,150,maxColorValue=255))
   
   if(plotSave==T){
-    sample_typeX <- str_extract(sampleX, "[^_]+")
-    sample_typeY <- str_extract(sampleY, "[^_]+")
+    for(name in row.names(cond_data)){
+      if(name == sampleX){
+        sample_typeX <- cond_data[name,1]
+      }
+    }
+    for(name in row.names(cond_data)){
+      if(name == sampleY){
+        sample_typeY <- cond_data[name,1]
+      }
+    }
     if(sample_typeX == sample_typeY){
       ggsave(paste0("plots/", sample_typeX, "_cor.png"),ggplot_output,units="in",width=4,height=4,device="png")
     }
@@ -490,19 +509,34 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
   
   #Prepare for mpraScatter
   message("Plotting Correlation Scatter Plots")
-  sample_var <- c()
+  rep1_loc <- c()
+  level_checked <- 0
+  level_count <- 0
+  for(celltype in levels(cond_data$condition)){
+    level_checked <- level_checked + 1
+    for(i in 1:dim(cond_data)[1]){
+      if(celltype == cond_data[i,1]){
+        rep1_loc <- append(rep1_loc, i)
+        level_count <- level_count + 1
+      }
+      if(level_count == level_checked){
+        break
+      }
+    }
+  }
+  
   rep1_loc <- grep("_r1", colnames(counts_out))
   replicate_list <- colnames(counts_out)[rep1_loc]
   cell_combinations <- combn(replicate_list,m=2)
   for(i in rep1_loc){
     sampleX <- colnames(counts_out)[i]
     sampleY <- colnames(counts_out)[i+1]
-    mpraScatter(countsOut = counts_out, sampleX, sampleY, plotSave)
+    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, plotSave)
   }
   for(combo in dim(cell_combinations)[2]){
     sampleX <- cell_combinations[1,combo]
     sampleY <- cell_combinations[2,combo]
-    mpraScatter(countsOut = counts_out, sampleX, sampleY, plotSave)
+    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, plotSave)
   }
   
   #Prepare for plot_logFC
@@ -511,6 +545,7 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
     if(celltype=="DNA" | celltype %in% exclList ) next
     message(celltype)
     output_tmp<-full_output[[celltype]]
+    message(class(output_tmp))
     plot_list<-plot_logFC(output_tmp, celltype)
     if(plotSave==F){
       plot_list[[1]]
