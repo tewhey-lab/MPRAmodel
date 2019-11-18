@@ -87,7 +87,7 @@ processAnalysis <- function(countsData, conditionData){
   dds$condition <- relevel(dds$condition, "DNA")
   dds_results <- DESeq(dds, fitType = 'local')
   
-  return(dds_results)
+  return(list(dds,dds_results))
 }
 
 ### Normalize DESeq results and plot normalized densities for each cell type
@@ -98,10 +98,14 @@ processAnalysis <- function(countsData, conditionData){
   # and celltype
 ## Returns: dds_results (normalized)
 tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss'){
-  dds_results <- processAnalysis(countsData, conditionData)
-  dds_results_orig <- processAnalysis(countsData, conditionData)
+  dds_results <- processAnalysis(countsData, conditionData)[[2]]
+  message(class(dds_results))
+  dds <- processAnalysis(countsData, conditionData)[[1]]
+  message(class(dds))
+  dds_results_orig <- dds_results
   attr_data <- addHaplo(attributesData)
   attribute_ids <- (attr_data[attr_data$project == "negCtrl",])$ID
+  full_attribute_ids <- attr_data$ID
   count_data <- oligoIsolate(countsData)
   cond_data <- conditionStandard(conditionData)
   colnames(count_data) <- row.names(cond_data)
@@ -119,11 +123,12 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
     }
     
     if(method == "ro"){
-      attribute_ids<-row.names(temp_outputA[!is.na(temp_outputA$pvalue) & temp_outputA$pvalue>0.001,])
+      temp_outputA_neg <- temp_outputA[full_attribute_ids,]
+      attribute_ids <- row.names(temp_outputA_neg[!is.na(temp_outputA_neg$pvalue) & temp_outputA_neg$pvalue>0.001,])
     }
   }
   if(method == "ro" | method == "nc"){
-    dds_results_tmp<-estimateSizeFactors(dds_results[attribute_ids])
+    dds_results_tmp<-estimateSizeFactors(dds[attribute_ids])
     sizeFactors(dds_results)<-sizeFactors(dds_results_tmp)
   }  
   if(method == "ss" | method == "ro" | method == "nc"){
@@ -189,8 +194,8 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     
     condition_table <- as.data.frame(cond_data)
     
-    ctrl_cols <- row.names(condition_table)[condition_table$condition=="DNA"]
-    exp_cols <- row.names(condition_table)[condition_table$condition==celltype]
+    ctrl_cols <- row.names(condition_table[condition_table$condition=="DNA",])
+    exp_cols <- row.names(condition_table[condition_table$condition==celltype,])
     
     message("Control and Experiment Columns Set")
     
@@ -554,6 +559,7 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
       ggsave(paste0("plots/logFC_",celltype,"_controls.pdf"),plot_list[[2]],units="in",width=8,height=6,device="pdf")
     }
   }
+  return(counts_out)
 }
 
 
