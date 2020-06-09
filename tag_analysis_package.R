@@ -2,11 +2,12 @@
 
 # Required packages
 install.packages("ggplot2")
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
+if (!requireNamespace("BiocManager", quietly = TRUE)){
+  install.packages("BiocManager")}
 BiocManager::install("DESeq2")
 library(DESeq2)
 library(ggplot2)
+library(reshape2)
 
 ###Generate information needed for file outputs later on
 fileDate <- function(){
@@ -21,7 +22,7 @@ fileDate <- function(){
 ### Add Haplotype column to attribute data if needed
 # attributesData  : table of full attributes, columns should include: ID, SNP, Project, Window, Strand, Allele,
   # Haplotype, Bash
-addHaplo <- function(attributesData){
+addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="UKBB"){
   if("Haplotype" %in% colnames(attributesData)){
     names(attributesData)[names(attributesData) == "Haplotype"] <- "haplotype"
   }
@@ -33,6 +34,16 @@ addHaplo <- function(attributesData){
   }
   if(!("haplotype" %in% colnames(attributesData))){
     attributesData$haplotype <- "NA"
+  }
+  multi_project_check <- colsplit(attributesData$project, ",", names = c("proj1","proj2"))
+  if(is.na(multi_project_check$proj2)){
+    attributesData$ctrl_exp <- attributesData$project
+  }
+  else{
+    attributesData$ctrl_exp <- projectName
+    attributesData[grep(negCtrlName, attributesData$project),]$ctrl_exp <- negCtrlName
+    attributesData[grep(posCtrlName, attributesData$project),]$ctrl_exp <- posCtrlName
+    
   }
   return(attributesData)
 }
@@ -74,7 +85,7 @@ conditionStandard <- function(conditionData){
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 ## Returns: dds_results (initial)
-processAnalysis <- function(countsData, conditionData){
+processAnalysis <- function(countsData, conditionData, exclList=c()){
   # bring in count data and condition data from previously defined functions
   count_data <- oligoIsolate(countsData)
   cond_data <- conditionStandard(conditionData)
@@ -97,15 +108,18 @@ processAnalysis <- function(countsData, conditionData){
 # conditionData  : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 ## Returns: dds_results (normalized)
-tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss'){
-  dds_results <- processAnalysis(countsData, conditionData)[[2]]
-  message(class(dds_results))
-  dds <- processAnalysis(countsData, conditionData)[[1]]
-  message(class(dds))
+tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss', negCtrlName="negCtrl"){
+  process <- processAnalysis(countsData, conditionData, exclList)
+  dds_results <- process[[2]]
+  #message(class(dds_results))
+  dds <- process[[1]]
+  #message(class(dds))
+  # dds_rna <- process[[3]]
+  #message(class(dds_rna[[1]]))
   dds_results_orig <- dds_results
-  attr_data <- addHaplo(attributesData)
-  attribute_ids <- (attr_data[attr_data$project == "negCtrl",])$ID
-  full_attribute_ids <- attr_data$ID
+  #attr_data <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
+  attribute_ids <- (attributesData[attributesData$ctrl_exp==negCtrlName,])$ID
+  full_attribute_ids <- attributesData$ID
   count_data <- oligoIsolate(countsData)
   cond_data <- conditionStandard(conditionData)
   colnames(count_data) <- row.names(cond_data)
@@ -121,7 +135,12 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
       log_offset <- 2^(density(temp_outputA$log2FoldChange)$x[summit])
       sizeFactors(dds_results)[which(cond_data$condition == celltype)] <- sizeFactors(dds_results)[which(cond_data$condition == celltype)]*(log_offset)
     }
-    
+    if(method == "ssn"){
+      temp_outputA_neg <- temp_outputA[attribute_ids,]
+      summit <- which.max(density(temp_outputA_neg$log2FoldChange, na.rm=T)$y)
+      log_offset <- 2^(density(temp_outputA_neg$log2FoldChange, na.rm=T)$x[summit])
+      sizeFactors(dds_results)[which(cond_data$condition == celltype)] <- sizeFactors(dds_results)[which(cond_data$condition == celltype)]*(log_offset)
+    }
     if(method == "ro"){
       temp_outputA_neg <- temp_outputA[full_attribute_ids,]
       attribute_ids <- row.names(temp_outputA_neg[!is.na(temp_outputA_neg$pvalue) & temp_outputA_neg$pvalue>0.001,])
@@ -130,35 +149,55 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
   if(method == "ro" | method == "nc"){
     dds_results_tmp<-estimateSizeFactors(dds[attribute_ids])
     sizeFactors(dds_results)<-sizeFactors(dds_results_tmp)
-  }  
-  if(method == "ss" | method == "ro" | method == "nc"){
-    dds_results <- estimateDispersions(dds_results,fitType='local')
-    dds_results <- nbinomWaldTest(dds_results)
   }
-  if(method == "mn"){
-    dds_results <- dds_results_orig
+  
+  dds_rna <- list()
+  #celltype based DESeq analysis
+  for(celltype in levels(cond_data$condition)){
+    if(celltype=="DNA" | celltype %in% exclList) next
+    rna_cols <- cond_data[which(cond_data$condition==celltype),]
+    rna_count <- count_data[,rownames(rna_cols)]
+    dds_rna_temp <- DESeqDataSetFromMatrix(countData = rna_count, colData = rna_cols, design = ~1)
+    sizeFactors(dds_rna_temp) <- sizeFactors(dds_results)[rownames(rna_cols)]
+    dds_rna_temp <- estimateDispersions(dds_rna_temp)
+    dds_rna[[celltype]] <- dds_rna_temp
   }
-
+  
+  dds_results <- tagSig(dds_results, dds_rna, cond_data, exclList)
+  
   # Plot normalized density for each cell type - 
   for (celltype in levels(cond_data$condition)) {
     if(celltype == "DNA" | celltype %in% exclList) next
     
     temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"))
+    
     outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"))
     
     message("Plotting Normalization Curves")
     pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
-    plot(density(temp_outputB[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="grey",main=paste0("Normalization - ",celltype))
+    plot(density(temp_outputB[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
     lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
     lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
     lines(density(outputA[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="salmon")
     text(1.5,0.4,adj=c(0,0),labels="All - baseline",col="black")
     text(1.5,0.35,adj=c(0,0),labels="All - corrected",col="red")
-    text(1.5,0.3,adj=c(0,0),labels="NegCtrl - baseline",col="grey")
-    text(1.5,0.25,adj=c(0,0),labels="NegCtrl - corrected",col="salmon")
+    text(1.5,0.3,adj=c(0,0),labels=paste0(negCtrlName," - baseline"),col="grey")
+    text(1.5,0.25,adj=c(0,0),labels=paste0(negCtrlName," - corrected"),col="salmon")
     abline(v=0)
     dev.off()
   }
+  return(dds_results)
+}
+
+tagSig <- function(dds_results, dds_rna, cond_data, exclList=c()){
+  for(celltype in levels(cond_data$condition)){
+    if(celltype == "DNA" | celltype %in% exclList) next
+    message(celltype)
+    dispersions(dds_rna[[celltype]])[which(is.na(dispersions(dds_rna[[celltype]])))] <- 10 #max(dispersions(dds_results))
+    mcols(dds_results)$dispersion <- dispersions(dds_rna[[celltype]])
+    dds_results <- nbinomWaldTest(dds_results)
+  }
+  message(paste(dim(dds_results), collapse = "\t"))
   return(dds_results)
 }
 
@@ -170,9 +209,9 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
 # conditionData  : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 ## writes duplicate output and ttest files for each celltype
-dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss'){
-  dds_results <- tagNorm(countsData, conditionData, attributesData, exclList, method)
-  attributesData <- addHaplo(attributesData)
+dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl"){
+  dds_results <- tagNorm(countsData, conditionData, attributesData, exclList, method, negCtrlName)
+  # attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
   message("Tags Normalized")
   count_data <- oligoIsolate(countsData)
   message("Oligos isolated")
@@ -184,6 +223,8 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
   full_output<-list()
   full_output_var<-list()
   
+  condition_table <- as.data.frame(cond_data)
+  
   for (celltype in levels(cond_data$condition)) {
     if(celltype == "DNA" | celltype %in% exclList) next
     message(celltype)
@@ -191,8 +232,6 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"))
     
     message("Results of dds_results recieved")
-    
-    condition_table <- as.data.frame(cond_data)
     
     ctrl_cols <- row.names(condition_table[condition_table$condition=="DNA",])
     exp_cols <- row.names(condition_table[condition_table$condition==celltype,])
@@ -260,7 +299,7 @@ expandDups <- function(output){
 # exp_cols        : passed from the dataOut function
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef = T){
-  snp_data <- subset(addHaplo(attributesData),allele=="ref" | allele=="alt")
+  snp_data <- subset(attributesData,allele=="ref" | allele=="alt")
   snp_data$comb <- paste(snp_data$SNP,"_",snp_data$window,"_",snp_data$strand,"_",snp_data$haplotype,sep="")
   tmp_ct <- as.data.frame(table(snp_data$comb))
   
@@ -391,7 +430,7 @@ panel.nlm <- function (x, y,  pch = par("pch"), col.lm = "red",  ...) {
 # sampleY         : string of different sample name (column name from counts data)
 # xmax            : maximum x value to include in plot
 # ymax            : maximum y value to include in plot
-mpraScatter<-function(conditionData, countsOut, sampleX, sampleY,xmax=quantile(countsOut,.99),ymax=quantile(countsOut,.99), plotSave=T) {
+mpraScatter<-function(conditionData, countsOut, sampleX, sampleY,xmax,ymax, plotSave=T) {
   cond_data <- conditionStandard(conditionData)
   count_df<-as.data.frame(countsOut)
   ggplot_output<-ggplot(count_df, aes_string(sampleX,sampleY)) +
@@ -426,10 +465,16 @@ mpraScatter<-function(conditionData, countsOut, sampleX, sampleY,xmax=quantile(c
 ### Function to produce plots showing the expression fold change vs. normalized tag counts
 # full_output     : Output from dataOut function
 # sample          : Cell Type as string
-plot_logFC <- function(full_output, sample) {
-  exp_values<-(full_output[full_output[["ctrl_mean"]] > 10 & !is.na(full_output[["ctrl_mean"]]),])
+plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="expCtrl") {
+  message(paste(dim(full_output), collapse = "\t"))
+  message(paste(summary(full_output$ctrl_mean), collapse = "\t"))
+  message(class(full_output))
+  exp_values<-(full_output[full_output$ctrl_mean > 10 & !is.na(full_output$ctrl_mean),])
+  message(paste(dim(exp_values), collapse = "\t"))
   exp_values$exp_mean[is.na(exp_values$exp_mean)]<-1
+  message(paste(dim(exp_values), collapse = "\t"))
   exp_values$log2FoldChange[is.na(exp_values$log2FoldChange)]<-0
+  message(paste(dim(exp_values), collapse = "\t"))
   exp_values$padj[is.na(exp_values$padj)]<-1
   exp_values$sig<-"Not Significant"
   exp_values$sig[exp_values$padj <= 0.00001]<-"Active"
@@ -449,16 +494,17 @@ plot_logFC <- function(full_output, sample) {
     guides(colour = guide_legend(override.aes = list(size=3,alpha=.7), title=NULL)) + 
     geom_abline(intercept = 0, slope = 0,linetype = 1, size=.75, color=rgb(255,140,0,150,maxColorValue=255))
   
-  cbPalette <- c("#56B4E9", "#999999", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+  message("colors set")
+  cbPalette <- c("#56B4E9","#F84763","#009E73", "#CAA674", "#0072B2", "#D55E00", "#CC79A7","#8057BB","#FBAD12","#999999")
   
   tmp_plotB<-1
-  tmp_plotB<-ggplot(exp_values,aes(x=ctrl_mean,y=log2FoldChange,color=project)) +
+  tmp_plotB<-ggplot(exp_values,aes(x=ctrl_mean,y=log2FoldChange,color=ctrl_exp)) +
     theme_bw() + theme(panel.grid.major = element_line(size = .25,colour = rgb(0,0,0,75,maxColorValue=255)), panel.grid.minor = element_blank()) +
     scale_colour_manual(values=cbPalette) +
     geom_point(alpha = .2,size=1) +
-    geom_point(data = subset(exp_values, project == 'negCtrl'), aes(x=ctrl_mean,y=log2FoldChange),alpha = .8,size=2) +
-    geom_point(data = subset(exp_values, project == 'expCtrl'), aes(x=ctrl_mean,y=log2FoldChange),alpha = .8,size=2) +
-    geom_point(data = subset(exp_values, project == 'emVarCtrl'), aes(x=ctrl_mean,y=log2FoldChange),alpha = .8,size=2) +
+    geom_point(data = subset(exp_values, ctrl_exp == negCtrlName), aes(x=ctrl_mean,y=log2FoldChange),alpha = .8,size=2) +
+    geom_point(data = subset(exp_values, ctrl_exp == posCtrlName), aes(x=ctrl_mean,y=log2FoldChange),alpha = .8,size=2) +
+    # geom_point(data = subset(exp_values, project == emvarCtrlName), aes(x=ctrl_mean,y=log2FoldChange),alpha = .8,size=2) +
     scale_x_log10() +
     #coord_cartesian(xlim = c(10, 1000),ylim = c(-1.5,7.5)) +
     xlab("Normalized Tag Count - Plasmids") + ylab(paste0(sample," Expression Fold Change log2(RNA/Plasmid)")) +
@@ -483,9 +529,13 @@ plot_logFC <- function(full_output, sample) {
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', ...){
+tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="UKBB", ...){
   file_prefix <- filePrefix
-  analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method)
+  mainDir <- getwd()
+  dir.create(file.path(mainDir, "plots"), showWarnings = FALSE)
+  dir.create(file.path(mainDir, "results"), showWarnings = FALSE)
+  attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
+  analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName)
   cond_data <- conditionStandard(conditionData)
   n <- length(levels(cond_data$condition))
   full_output <- analysis_out[1:(n-1)]
@@ -532,15 +582,17 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
   rep1_loc <- grep("_r1", colnames(counts_out))
   replicate_list <- colnames(counts_out)[rep1_loc]
   cell_combinations <- combn(replicate_list,m=2)
+  xmax = quantile(counts_out,0.99)
+  ymax = quantile(counts_out,0.99)
   for(i in rep1_loc){
     sampleX <- colnames(counts_out)[i]
     sampleY <- colnames(counts_out)[i+1]
-    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, plotSave)
+    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, xmax = xmax, ymax = ymax, plotSave)
   }
   for(combo in dim(cell_combinations)[2]){
     sampleX <- cell_combinations[1,combo]
     sampleY <- cell_combinations[2,combo]
-    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, plotSave)
+    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, xmax = xmax, ymax = ymax, plotSave)
   }
   
   #Prepare for plot_logFC
@@ -549,7 +601,8 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
     if(celltype=="DNA" | celltype %in% exclList ) next
     message(celltype)
     output_tmp<-full_output[[celltype]]
-    plot_list<-plot_logFC(output_tmp, celltype)
+    message(paste(dim(output_tmp), collapse="\t"))
+    plot_list<-plot_logFC(output_tmp, celltype, negCtrlName, posCtrlName)
     if(plotSave==F){
       plot_list[[1]]
       plot_list[[2]]
