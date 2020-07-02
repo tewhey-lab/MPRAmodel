@@ -263,8 +263,10 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
 }
 
 ### Expand IDs that denote duplicate oligos in count/DESeq results
-# Requires the output_2 of dataOut function.
-## Returns: Final output table with no duplicates
+# Requires the output_2 of dataOut function - This is a df containing the control (DNA) means and experimental (RNA) means and
+  # normalized-celltype specific DESeq results
+## Returns: Final output table with no duplicates - Table in the same format as above, except with IDs that were previously several oligos
+  ## separated by semi-colons have been separated into separate rows.
 expandDups <- function(output){
   output_orig <- output
   output_new <- cbind(rownames(output), output)
@@ -275,7 +277,6 @@ expandDups <- function(output){
   # Add everything but the duplicates to the final output
   output_final <- output_new[-(grep("\\(.*\\)$",output_new$Row.names)),] 
   output_final <- output_final[!(is.na(output_final$Row.names)),]
-  # If there are 1 or more duplicates.... Not clear what this step is doing????
   if(nrow(dups) > 0) {
     for(i in 1:nrow(dups)){
       dup_id <- unlist(strsplit(dups$Row.names[i],";"))
