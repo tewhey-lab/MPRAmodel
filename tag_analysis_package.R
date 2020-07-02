@@ -19,9 +19,10 @@ fileDate <- function(){
   return(today)
 }
 
-### Add Haplotype column to attribute data if needed
+### Add Haplotype column to attribute data and resolve Oligos with multiple projects
 # attributesData  : table of full attributes, columns should include: ID, SNP, Project, Window, Strand, Allele,
   # Haplotype, Bash
+## Returns: attributes table with ctrl_exp column which resolves oligos which serve as negative and positive controls
 addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="UKBB"){
   if("Haplotype" %in% colnames(attributesData)){
     names(attributesData)[names(attributesData) == "Haplotype"] <- "haplotype"
@@ -48,9 +49,9 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
   return(attributesData)
 }
 
-### Isolate oligo data
+### Remove Error, CIGAR, MD and position columns if necessary; aggregrate cound data with relation to the oligo
 # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
-# returns oligo count data with the oligo as row names and the aggregate count data
+## Returns: oligo count data with the oligo as row names and the aggregate count data
 oligoIsolate <- function(countsData){
   if("Error" %in% colnames(countsData)){
     countsData <- countsData[,c(1,2,7:dim(countsData)[2])]
@@ -65,7 +66,7 @@ oligoIsolate <- function(countsData){
 # conditionData  : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 # data should initially be read in such that samples are row names
-## Returns: cond_data
+## Returns: standardized condition data, factorizing the cell types and categorizing DNA as 1 and RNA as 0
 conditionStandard <- function(conditionData){
   cond_data <- conditionData
   colnames(cond_data)[1] <- "condition"
@@ -105,19 +106,14 @@ processAnalysis <- function(countsData, conditionData, exclList=c()){
 # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
 # attributesData  : table of full attributes, columns should include: ID, SNP, Project, Window, Strand, Allele,
   # Haplotype, Bash
-# conditionData  : table of conditions, 2 columns no header align to the variable column headers of countsData
+# conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 ## Returns: dds_results (normalized)
 tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss', negCtrlName="negCtrl"){
   process <- processAnalysis(countsData, conditionData, exclList)
   dds_results <- process[[2]]
-  #message(class(dds_results))
   dds <- process[[1]]
-  #message(class(dds))
-  # dds_rna <- process[[3]]
-  #message(class(dds_rna[[1]]))
   dds_results_orig <- dds_results
-  #attr_data <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
   attribute_ids <- (attributesData[attributesData$ctrl_exp==negCtrlName,])$ID
   full_attribute_ids <- attributesData$ID
   count_data <- oligoIsolate(countsData)
@@ -135,24 +131,27 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
       log_offset <- 2^(density(temp_outputA$log2FoldChange)$x[summit])
       sizeFactors(dds_results)[which(cond_data$condition == celltype)] <- sizeFactors(dds_results)[which(cond_data$condition == celltype)]*(log_offset)
     }
+    # Summit shift normalization - negative controls only
     if(method == "ssn"){
       temp_outputA_neg <- temp_outputA[attribute_ids,]
       summit <- which.max(density(temp_outputA_neg$log2FoldChange, na.rm=T)$y)
       log_offset <- 2^(density(temp_outputA_neg$log2FoldChange, na.rm=T)$x[summit])
       sizeFactors(dds_results)[which(cond_data$condition == celltype)] <- sizeFactors(dds_results)[which(cond_data$condition == celltype)]*(log_offset)
     }
+    # Remove outliers for normalization
     if(method == "ro"){
       temp_outputA_neg <- temp_outputA[full_attribute_ids,]
       attribute_ids <- row.names(temp_outputA_neg[!is.na(temp_outputA_neg$pvalue) & temp_outputA_neg$pvalue>0.001,])
     }
   }
+  # Remove outliers or negative controls only
   if(method == "ro" | method == "nc"){
     dds_results_tmp<-estimateSizeFactors(dds[attribute_ids])
     sizeFactors(dds_results)<-sizeFactors(dds_results_tmp)
   }
   
   dds_rna <- list()
-  #celltype based DESeq analysis
+  # Celltype based DESeq analysis
   for(celltype in levels(cond_data$condition)){
     if(celltype=="DNA" | celltype %in% exclList) next
     rna_cols <- cond_data[which(cond_data$condition==celltype),]
@@ -163,6 +162,7 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
     dds_rna[[celltype]] <- dds_rna_temp
   }
   
+  # Replace dispersions in normalized dds with the celltype specific dispersions
   dds_results <- tagSig(dds_results, dds_rna, cond_data, exclList)
   
   # Plot normalized density for each cell type - 
@@ -189,6 +189,11 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
   return(dds_results)
 }
 
+### Replace dispersions of normalized dds with celltype specific dispersions
+# dds_results     : Normalized dds_results
+# dds_rna         : List of cell type specific dds results
+# cond_data       : Standardized condition data
+## Returns: dds_results (normalized and celltype specific)
 tagSig <- function(dds_results, dds_rna, cond_data, exclList=c()){
   for(celltype in levels(cond_data$condition)){
     if(celltype == "DNA" | celltype %in% exclList) next
@@ -201,17 +206,16 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c()){
   return(dds_results)
 }
 
-### Retrieve output data for future functions - ideally this is the function that will be called.
+### Retrieve output data for future functions - if only looking for results and not the plots this is the only function that needs to be called
   # Any subsequent functions should only need an output from here
 # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
 # attributesData  : table of full attributes, columns should include: ID, SNP, Project, Window, Strand, Allele,
-  # Haplotype, Bash
-# conditionData  : table of conditions, 2 columns no header align to the variable column headers of countsData
+  # Haplotype, Bash. **NB** If you are just running this function make sure to pass your attributes table through the addHaplo function
+# conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
-## writes duplicate output and ttest files for each celltype
+## Returns: writes duplicate output and ttest files for each celltype
 dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl"){
   dds_results <- tagNorm(countsData, conditionData, attributesData, exclList, method, negCtrlName)
-  # attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
   message("Tags Normalized")
   count_data <- oligoIsolate(countsData)
   message("Oligos isolated")
@@ -259,8 +263,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
 }
 
 ### Expand IDs that denote duplicate oligos in count/DESeq results
-# Requires the output_2 of dataOut function. 
-  # i.e: dataOut(countsData, attributesData, conditionData)$output_2
+# Requires the output_2 of dataOut function.
 ## Returns: Final output table with no duplicates
 expandDups <- function(output){
   output_orig <- output
