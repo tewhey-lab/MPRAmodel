@@ -535,9 +535,11 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
 tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="UKBB", ...){
   file_prefix <- filePrefix
+  # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
   dir.create(file.path(mainDir, "plots"), showWarnings = FALSE)
   dir.create(file.path(mainDir, "results"), showWarnings = FALSE)
+  # Resolve any multi-project conflicts, run normalization, and write celltype specific results files 
   attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
   analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName)
   cond_data <- conditionStandard(conditionData)
@@ -545,6 +547,7 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
   full_output <- analysis_out[1:(n-1)]
   dds_results <- analysis_out[[n]]
   
+  # Plot correlation tables using the functions initialized above. 
   message("Plotting correlation tables")
   counts_out <- counts(dds_results, normalized=T)
   if(plotSave==F){
