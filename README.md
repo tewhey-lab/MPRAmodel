@@ -5,7 +5,7 @@ tag_analysis_package.R:
 
 There are 3 files that this pipeline needs for input. <br>
    * Counts Table: Table of counts with header. Should be either the output of the [ReplicateCount](https://github.com/tewhey-lab/tag_analysis_WDL) pipeline, or in the same format. <br>
-   * Attributes Table: Attributes for each oligo including oligo name, SNP, chromosome, position, reference allele, alt allele, Allele (ref/alt), window, strand, project, haplotype. For Oligos named in the form chr:pos:ref:alt:allele:window(:haplotype) the script [here](https://github.com/tewhey-lab/tag_analysis_WDL/blob/master/scripts/make_attributes_oligo.pl) can be used to generate the attributes table. <br>
+   * Attributes Table: Attributes for each oligo including oligo name, SNP, chromosome, position, reference allele, alt allele, Allele (ref/alt), window, strand, project, haplotype. For Oligos named in the form chr:pos:ref:alt:allele:window(:haplotype) the scripts [here](https://github.com/tewhey-lab/tag_analysis_WDL/blob/master/scripts/make_infile.py) and [here](https://github.com/tewhey-lab/tag_analysis_WDL/blob/master/scripts/make_attributes_oligo.pl) can be used to generate the attributes table. <br>
    * Condition Table: 2 columns w/no header column 1 is replicates as found in the count table, column 2 indicates cell type. This can be done in the program of your choice.
 
 Description of Functions:
