@@ -1,4 +1,4 @@
-# MPRA tag sequencing analysis pipeline
+# MPRA count analysis pipeline
 
 tag_analysis_package.R:
       A series of functions to assist in analysis of MPRA count tables
