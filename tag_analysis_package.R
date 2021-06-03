@@ -273,7 +273,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     printbed$log10pval=-log10(printbed$log10pval)
     printbed$log10fdr=-log10(printbed$log10fdr)
     
-    write.table(printbed,paste0("results/",file_prefix,"_",celltype,"_",file_date,".bed"),row.names=FALSE,col.names=TRUE,sep="\t",quote=FALSE)
+    write.table(printbed,paste0("results/",file_prefix,"_",celltype,"_",fileDate(),".bed"),row.names=FALSE,col.names=TRUE,sep="\t",quote=FALSE)
   }
   return(c(full_output, dds_results))
 }
