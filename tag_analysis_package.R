@@ -258,6 +258,22 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     outA<-cellSpecificTtest(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef)
     full_output_var[[celltype]]<-outA
     write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
+    
+    message("Writing bed File")
+    full_bed_outputA<-merge(attributesData, as.matrix(dups_output),by.x="ID",by.y="row.names",all.x=TRUE,no.dups=FALSE)
+    #printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]    
+    printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","project")]        
+    printbed$score<-"."
+    #printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]      
+    #colnames(printbed)<-c("chr","start","stop","id","score","strand","log2fc","input-count","output-count","log10pval","log10fdr","lfc-se","cigar","md-tag","project")
+    printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","project")]      
+    colnames(printbed)<-c("chr","start","stop","id","score","strand","log2fc","input-count","output-count","log10pval","log10fdr","lfc-se","project")
+    printbed$strand[printbed$strand=="fwd"]="+"
+    printbed$strand[printbed$strand=="rev"]="-"
+    printbed$log10pval=-log10(printbed$log10pval)
+    printbed$log10fdr=-log10(printbed$log10fdr)
+    
+    write.table(printbed,paste0("results/",file_prefix,"_",celltype,"_",file_date,".bed"),row.names=FALSE,col.names=TRUE,sep="\t",quote=FALSE)
   }
   return(c(full_output, dds_results))
 }
@@ -621,3 +637,6 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
   }
   return(counts_out)
 }
+
+
+
