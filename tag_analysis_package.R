@@ -1,10 +1,10 @@
 ### A package to perform MPRA Tag Analysis
 
 # Required packages
-install.packages("ggplot2")
-if (!requireNamespace("BiocManager", quietly = TRUE)){
-  install.packages("BiocManager")}
-BiocManager::install("DESeq2")
+# install.packages("ggplot2")
+# if (!requireNamespace("BiocManager", quietly = TRUE)){
+#   install.packages("BiocManager")}
+# BiocManager::install("DESeq2")
 library(DESeq2)
 library(ggplot2)
 library(reshape2)
