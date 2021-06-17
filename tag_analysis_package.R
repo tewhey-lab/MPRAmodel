@@ -223,6 +223,9 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
   message("condition data standardized")
   colnames(count_data) <- row.names(cond_data)
   counts_norm <- counts(dds_results, normalized = T)
+  
+  message("Removing count duplicates")
+  counts_norm <- expandDups(counts_norm)
 
   full_output<-list()
   full_output_var<-list()
@@ -258,6 +261,10 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     outA<-cellSpecificTtest(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef)
     full_output_var[[celltype]]<-outA
     write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
+    
+    message("Writing DESeq Allelic Skew Results File")
+    outB <- DESkew(conditionData, counts_norm, attributesData, celltype)
+    write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DESeq_skew_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     
     message("Writing bed File")
     full_bed_outputA<-merge(attributesData, as.matrix(dups_output),by.x="ID",by.y="row.names",all.x=TRUE,no.dups=FALSE)
@@ -406,6 +413,65 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   out2$Skew_logFDR[q_idx] <- -log10(p.adjust(t_pvalue[q_idx],method="BH"))
 
   return(out2)
+}
+
+### Function to perform DESeq version of Allelic Skew
+
+DESkew <- function(conditionData, counts_norm, attributesData, celltype){
+  
+  ds_cond_data <- conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),]
+  
+  # Prepare the sample table
+  total_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition=="DNA"),]))
+  total_cond <- length(unique(ds_cond_data$condition))
+  samps <- data.frame(reps=factor(rep(rep(1:(total_reps), each=2), total_cond)),
+                      count=factor(rep(c("ref","alt"),(total_reps*total_cond)), levels = c("ref","alt")),
+                      condition=factor(rep(unique(ds_cond_data$condition), each=total_reps*2)))
+  
+  
+  # Reorganize the count data
+  snp_data <- subset(attributesData,allele=="ref" | allele=="alt")
+  snp_data$comb <- paste(snp_data$SNP,"_",snp_data$window,"_",snp_data$strand,"_",snp_data$haplotype,sep="")
+  tmp_ct <- as.data.frame(table(snp_data$comb))
+  
+  snp_data_pairs <- snp_data[snp_data$comb %in% tmp_ct[tmp_ct$Freq==2,]$Var1,]
+  
+  id_ref_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="ref")]
+  id_alt_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="alt")]
+  
+  counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),]
+  counts_ref$SNP <- snp_data_pairs$SNP[which(snp_data_pairs$ID %in% rownames(counts_ref))]
+  counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),]
+  counts_alt$SNP <- snp_data_pairs$SNP[which(snp_data_pairs$ID %in% rownames(counts_alt))]
+  
+  colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
+  colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
+  colnames(counts_ref)[which(colnames(counts_ref)=="SNP_ref")] <- "SNP"
+  colnames(counts_alt)[which(colnames(counts_alt)=="SNP_alt")] <- "SNP"
+  
+  counts_ref_alt <- merge(counts_ref, counts_alt, by="SNP", all=T)
+  
+  column_order <- data.frame(count=factor(rep(c("ref","alt"),(total_reps*total_cond)), levels = c("ref","alt")),
+                             condition=factor(rep(rownames(ds_cond_data), each=2)))
+  column_order$order <- paste0(column_order$condition,"_",column_order$count)
+  
+  counts_ref_alt <- counts_ref_alt[,c("SNP",column_order$order)]
+  
+  counts_mat <- as.matrix(counts_ref_alt[,2:ncol(counts_ref_alt)])
+  
+  # Set Design definition
+  design <- ~condition + condition:reps + condition:count
+  
+  # Run DESeq analysis
+  dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
+  sizeFactors(dds) <- rep(1, total_reps*total_cond)
+  dds <- DESeq(dds, fitType = "local")
+  
+  # Get the skew results
+  cell_res <- paste0("condition",celltype,".countalt")
+  res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"))
+  
+  return(res.diff)
 }
 
 ### Set up for correlation scatter plot functions.
