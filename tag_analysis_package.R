@@ -456,6 +456,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   column_order$order <- paste0(column_order$condition,"_",column_order$count)
   
   counts_ref_alt <- counts_ref_alt[,c("SNP",column_order$order)]
+  rownames(counts_ref_alt) <- counts_ref_alt$SNP
   
   counts_mat <- as.matrix(counts_ref_alt[,2:ncol(counts_ref_alt)])
   
