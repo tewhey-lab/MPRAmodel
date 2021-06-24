@@ -225,7 +225,8 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
   counts_norm <- counts(dds_results, normalized = T)
   
   message("Removing count duplicates")
-  counts_norm <- expandDups(counts_norm)
+  counts_DE <- counts(dds_results, normalized=F)
+  counts_norm_DE <- expandDups(counts_DE)
 
   full_output<-list()
   full_output_var<-list()
@@ -251,6 +252,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
 
     message("Removing Duplicates")
     dups_output<-expandDups(output_2)
+    message(paste0(colnames(dups_output),collapse = "\t"))
 
     message("Writing Standard Results File")
     full_outputA<-merge(attributesData, as.matrix(dups_output), by.x="ID", by.y="row.names", all.x=TRUE, no.dups=F)
@@ -263,17 +265,17 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     
     message("Writing DESeq Allelic Skew Results File")
-    outB <- DESkew(conditionData, counts_norm, attributesData, celltype)
+    outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype)
     write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DESeq_skew_", fileDate(),".out"), row.names=T, col.names=T, sep="\t", quote=F)
     
     message("Writing bed File")
     full_bed_outputA<-merge(attributesData, as.matrix(dups_output),by.x="ID",by.y="row.names",all.x=TRUE,no.dups=FALSE)
     #printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]    
-    printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","project")]        
+    printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","ctrl_mean","exp_mean","pvalue","padj","lfcSE","project")]        
     printbed$score<-"."
     #printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]      
     #colnames(printbed)<-c("chr","start","stop","id","score","strand","log2fc","input-count","output-count","log10pval","log10fdr","lfc-se","cigar","md-tag","project")
-    printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","project")]      
+    printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","ctrl_mean","exp_mean","pvalue","padj","lfcSE","project")]      
     colnames(printbed)<-c("chr","start","stop","id","score","strand","log2fc","input-count","output-count","log10pval","log10fdr","lfc-se","project")
     printbed$strand[printbed$strand=="fwd"]="+"
     printbed$strand[printbed$strand=="rev"]="-"
@@ -292,12 +294,17 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
   ## separated by semi-colons have been separated into separate rows.
 expandDups <- function(output){
   output_orig <- output
-  output_new <- cbind(rownames(output), output)
+  if(class(output_orig)=="matrix"){
+    output_orig <- as.data.frame(output_orig)
+  }
+  output_new <- cbind(rownames(output_orig), output_orig)
   colnames(output_new)[1] <- "Row.names"
   # Identify duplicates, if any exist
+  message("identifying duplicates")
   dups <- output_new[grep("\\(.*\\)$",output_new$Row.names),]
   dups$Row.names <- gsub("^\\((.*)\\)$","\\1",dups$Row.names)
   # Add everything but the duplicates to the final output
+  message("resolving duplicates")
   output_final <- output_new[-(grep("\\(.*\\)$",output_new$Row.names)),]
   output_final <- output_final[!(is.na(output_final$Row.names)),]
   if(nrow(dups) > 0) {
@@ -419,7 +426,8 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
 
 DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
-  ds_cond_data <- conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),]
+  ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),], row.names=rownames(conditionData))
+  message(class(ds_cond_data))
   
   # Prepare the sample table
   total_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition=="DNA"),]))
@@ -430,6 +438,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   
   # Reorganize the count data
+  message("reorganizing count data")
   snp_data <- subset(attributesData,allele=="ref" | allele=="alt")
   snp_data$comb <- paste(snp_data$SNP,"_",snp_data$window,"_",snp_data$strand,"_",snp_data$haplotype,sep="")
   tmp_ct <- as.data.frame(table(snp_data$comb))
@@ -437,28 +446,36 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   snp_data_pairs <- snp_data[snp_data$comb %in% tmp_ct[tmp_ct$Freq==2,]$Var1,]
   
   id_ref_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="ref")]
+  message(length(id_ref_all))
   id_alt_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="alt")]
+  message(length(id_alt_all))
   
-  counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),]
-  counts_ref$SNP <- snp_data_pairs$SNP[which(snp_data_pairs$ID %in% rownames(counts_ref))]
-  counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),]
-  counts_alt$SNP <- snp_data_pairs$SNP[which(snp_data_pairs$ID %in% rownames(counts_alt))]
-  
+  counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),,drop=F]
   colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
-  colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
-  colnames(counts_ref)[which(colnames(counts_ref)=="SNP_ref")] <- "SNP"
-  colnames(counts_alt)[which(colnames(counts_alt)=="SNP_alt")] <- "SNP"
+  counts_ref <- cbind(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","snp_pos","ref_allele","alt_allele","allele","strand")])
   
-  counts_ref_alt <- merge(counts_ref, counts_alt, by="SNP", all=T)
+  counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),,drop=F]
+  colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
+  counts_alt <- cbind(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","snp_pos","ref_allele","alt_allele","allele","strand")])
+  
+  counts_ref_alt <- merge(counts_ref, counts_alt, by=c("SNP","chr","snp_pos","ref_allele","alt_allele","strand"), all=T)
+  
+  message(paste0(colnames(counts_ref_alt),collapse = "\t"))
   
   column_order <- data.frame(count=factor(rep(c("ref","alt"),(total_reps*total_cond)), levels = c("ref","alt")),
                              condition=factor(rep(rownames(ds_cond_data), each=2)))
   column_order$order <- paste0(column_order$condition,"_",column_order$count)
   
-  counts_ref_alt <- counts_ref_alt[,c("SNP",column_order$order)]
-  rownames(counts_ref_alt) <- counts_ref_alt$SNP
+  counts_ref_alt <- counts_ref_alt[,c("ID.x","SNP","chr","snp_pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
+  colnames(counts_ref_alt) <- c("ID","SNP","chr","snp_pos","ref_allele","alt_allele","allele","strand",column_order$order)
+  message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
   
-  counts_mat <- as.matrix(counts_ref_alt[,2:ncol(counts_ref_alt)])
+  counts_mat <- as.matrix(counts_ref_alt[,column_order$order])
+  message(paste0("counts_mat_og: " ,nrow(counts_mat)))
+  ids_comp <- counts_ref_alt$ID[complete.cases(counts_mat)]
+  message(paste0("tot_id: ",length(ids_comp)))
+  counts_mat <- counts_mat[complete.cases(counts_mat),]
+  message(paste0("counts_mat_comp: ",nrow(counts_mat)))
   
   # Set Design definition
   design <- ~condition + condition:reps + condition:count
@@ -472,7 +489,15 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   cell_res <- paste0("condition",celltype,".countalt")
   res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"))
   
-  return(res.diff)
+  # Add in the oligo info
+  oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"snp_pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
+  message("combining data")
+  message(nrow(res.diff))
+  message(nrow(counts_mat))
+  message(nrow(oligo_info))
+  res_comp <- cbind(oligo_info,res.diff)
+  
+  return(res_comp)
 }
 
 ### Set up for correlation scatter plot functions.
@@ -624,6 +649,7 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
   dir.create(file.path(mainDir, "results"), showWarnings = FALSE)
   # Resolve any multi-project conflicts, run normalization, and write celltype specific results files
   attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
+  message("running DESeq")
   analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName)
   cond_data <- conditionStandard(conditionData)
   n <- length(levels(cond_data$condition))
