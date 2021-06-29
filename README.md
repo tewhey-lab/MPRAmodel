@@ -29,6 +29,7 @@ Description of Functions:
        * OUTPUTS: Standard results file for each cell type, cell type specific t-test results files
    * `expandDups` - expand Ids that denote duplicate oligos in count/DESeq results. Called by `dataOut`
    * `cellSpecificTtest` - performs TTests on inidividual cell types comparing alt/ref haplotypes. Called by `dataOut`
+   * `DESkew` - performs a Differential Expression Allelic Skew Analysis in DESeq comparing the alt/ref alleles. Called by `dataOut`
    * `panel.cor`, `panel.lm`, `panel.nlm` - functions which set up for correlation scatter plots. Called by `tagWrapper`.
    * `mpraScatter` - function to produce scatter plot of counts data for visualization of correlation between two samples. Called by `tagWrapper`
        * INPUTS:  standardized condition table, normalized count data, strings of sample names, maximum x and y values to include in plots
