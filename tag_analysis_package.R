@@ -214,7 +214,7 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c()){
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 ## Returns: writes duplicate output and ttest files for each celltype
-dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl"){
+dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",tTest=T, DEase=T){
   dds_results <- tagNorm(countsData, conditionData, attributesData, exclList, method, negCtrlName)
   message("Tags Normalized")
   count_data <- oligoIsolate(countsData)
@@ -224,10 +224,12 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
   colnames(count_data) <- row.names(cond_data)
   counts_norm <- counts(dds_results, normalized = T)
   
-  message("Removing count duplicates")
-  counts_DE <- counts(dds_results, normalized=F)
-  counts_norm_DE <- expandDups(counts_DE)
-
+  if(DEase==T){
+    message("Removing count duplicates")
+    counts_DE <- counts(dds_results, normalized=F)
+    counts_norm_DE <- expandDups(counts_DE)
+  }
+  
   full_output<-list()
   full_output_var<-list()
 
@@ -259,14 +261,18 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     full_output[[celltype]]<-full_outputA
     write.table(full_outputA, paste0("results/", file_prefix, "_", celltype, "_", fileDate(), ".out"), row.names=F, col.names=T, sep="\t", quote=F)
 
-    message("Writing T-Test Results File")
-    outA<-cellSpecificTtest(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef)
-    full_output_var[[celltype]]<-outA
-    write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
+    if(tTest==T){
+      message("Writing T-Test Results File")
+      outA<-cellSpecificTtest(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef)
+      full_output_var[[celltype]]<-outA
+      write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
+    }
     
-    message("Writing DESeq Allelic Skew Results File")
-    outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype)
-    write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DE_ase_", fileDate(),".out"), row.names=T, col.names=T, sep="\t", quote=F)
+    if(DEase==T){
+      message("Writing DESeq Allelic Skew Results File")
+      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype)
+      write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DE_ase_", fileDate(),".out"), row.names=T, col.names=T, sep="\t", quote=F)
+    }
     
     message("Writing bed File")
     full_bed_outputA<-merge(attributesData, as.matrix(dups_output),by.x="ID",by.y="row.names",all.x=TRUE,no.dups=FALSE)
@@ -641,7 +647,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="UKBB", ...){
+tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="UKBB", tTest=T, DEase=T, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
@@ -650,7 +656,7 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
   # Resolve any multi-project conflicts, run normalization, and write celltype specific results files
   attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
   message("running DESeq")
-  analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName)
+  analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName, tTest, DEase)
   cond_data <- conditionStandard(conditionData)
   n <- length(levels(cond_data$condition))
   full_output <- analysis_out[1:(n-1)]
