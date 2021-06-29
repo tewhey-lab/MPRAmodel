@@ -266,7 +266,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     
     message("Writing DESeq Allelic Skew Results File")
     outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype)
-    write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DESeq_skew_", fileDate(),".out"), row.names=T, col.names=T, sep="\t", quote=F)
+    write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DE_ase_", fileDate(),".out"), row.names=T, col.names=T, sep="\t", quote=F)
     
     message("Writing bed File")
     full_bed_outputA<-merge(attributesData, as.matrix(dups_output),by.x="ID",by.y="row.names",all.x=TRUE,no.dups=FALSE)
