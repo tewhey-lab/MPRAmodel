@@ -29,12 +29,19 @@ Description of Functions:
        * OUTPUTS: Standard results file for each cell type, cell type specific t-test results files
    * `expandDups` - expand Ids that denote duplicate oligos in count/DESeq results. Called by `dataOut`
    * `cellSpecificTtest` - performs TTests on inidividual cell types comparing alt/ref haplotypes. Called by `dataOut`
-   * `DESkew` - performs a Differential Expression Allelic Skew Analysis in DESeq comparing the alt/ref alleles. Called by `dataOut`
+   * `DESkew` - performs a Differential Expression Allelic to detect Allele Specific Expression in DESeq comparing the alt/ref alleles. Called by `dataOut`
    * `panel.cor`, `panel.lm`, `panel.nlm` - functions which set up for correlation scatter plots. Called by `tagWrapper`.
    * `mpraScatter` - function to produce scatter plot of counts data for visualization of correlation between two samples. Called by `tagWrapper`
        * INPUTS:  standardized condition table, normalized count data, strings of sample names, maximum x and y values to include in plots
        * OUTPUTS: Scatter plots comparing two samples of either the same or different cell types.
    * `plot_logFC` - Produces plots showing expression fold change vs. normalized tag counts. Called by `tagWrapper`
    * `tagWrapper` - Function runs the whole analysis
-       * INPUTS:  Counts Table, Attributes Table, Condition Table, file prefix, overall project name, negative control name, positive control name, normalization method, plot save (logical), altRef (logical)
-       * OUTPUTS: plots normalization curves, writes standard results file for each cell type and cell type specific t-test results files, if plot save is TRUE the correlation tables, scatter plots and log fold change plots are saved.
+       * INPUTS:  Counts Table, Attributes Table, Condition Table, file prefix, overall project name, negative control name, positive control name, normalization method, plot save (logical), altRef (logical), tTest (logical - perform celltype specific Ttest), DEase (logical - perform Differential Expression Allelic Skew)
+       * OUTPUTS: plots normalization curves, writes standard results file and bed file for each cell type as well as optional files: cell type specific t-test results and Differential Expression Allelic Skew results. If plot save is TRUE the correlation tables, scatter plots and log fold change plots are saved.
+       * USE: 
+            ```
+            tag_out <- tagWrapper(countsTable, attributesData, conditionData, filePrefix="<desired file prefix>", exclList=c(<oligos to exclude>),
+                  plotSave=<logical>, altRef=<logical, how to order for tTest>, method="<desired normalization method default "ss">", 
+                  negCtrlName="<negative control project name from attributesData>", posCtrlName="<positive control project name from attributesData>",
+                  projectName="<Overall project, default "UKBB">", tTest=<logical, perform Ttest>, DEase=<logical, perform DE Allelic Skew analysis>)
+            ```      
