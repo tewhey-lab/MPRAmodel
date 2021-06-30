@@ -458,6 +458,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),,drop=F]
   colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
+  message(class(rownames(counts_ref)))
   counts_ref <- cbind(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","snp_pos","ref_allele","alt_allele","allele","strand")])
   
   counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),,drop=F]
