@@ -36,8 +36,11 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
   if(!("haplotype" %in% colnames(attributesData))){
     attributesData$haplotype <- "NA"
   }
+  if("snp_pos" %in% colnames(attributesData)){
+    names(attributesData)[names(attributesData) == "snp_pos"] <- "pos"
+  }
   multi_project_check <- colsplit(attributesData$project, ",", names = c("proj1","proj2"))
-  if(is.na(multi_project_check$proj2)){
+  if(any(is.na(multi_project_check$proj2))){
     attributesData$ctrl_exp <- attributesData$project
   }
   else{
@@ -276,8 +279,12 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     
     message("Writing bed File")
     full_bed_outputA<-merge(attributesData, as.matrix(dups_output),by.x="ID",by.y="row.names",all.x=TRUE,no.dups=FALSE)
-    message(paste0(colnames(full_bed_outputA), collapse = "\t"))
+    # message(paste0(colnames(full_bed_outputA), collapse = "\t"))
     #printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]    
+    if(!(c("start","stop") %in% colnames(full_bed_outputA))){
+      full_bed_outputA$start <- ""
+      full_bed_outputA$stop <- ""
+    }
     printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","ctrl_mean","exp_mean","pvalue","padj","lfcSE","project")]        
     printbed$score<-"."
     #printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]      
@@ -393,7 +400,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
       }))
 
   out2 <- out[,c(1:12, 16:19, 23:28)]
-  colnames(out2) <- c("ID", "SNP", "chr", "snp_pos", "ref_allele", "alt_allele", "allele", "strand", "A_Ctrl_Mean", "A_Exp_Mean", "A_log2FC", "A_log2FC_SE", "B_Ctrl_Mean", "B_Exp_Mean", "B_log2FC", "B_log2FC_SE",
+  colnames(out2) <- c("ID", "SNP", "chr", "pos", "ref_allele", "alt_allele", "allele", "strand", "A_Ctrl_Mean", "A_Exp_Mean", "A_log2FC", "A_log2FC_SE", "B_Ctrl_Mean", "B_Exp_Mean", "B_log2FC", "B_log2FC_SE",
                       "B_logPadj_BF", "B_logPadj_BH", "B_logP", "A_logPadj_BF", "A_logPadj_BH", "A_logP")
 
   # Don't try to do the t test for ones with all zeros.
@@ -460,13 +467,13 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),,drop=F]
   colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
   message(class(rownames(counts_ref)))
-  counts_ref <- cbind(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","snp_pos","ref_allele","alt_allele","allele","strand")])
+  counts_ref <- cbind(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")])
   
   counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),,drop=F]
   colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
-  counts_alt <- cbind(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","snp_pos","ref_allele","alt_allele","allele","strand")])
+  counts_alt <- cbind(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")])
   
-  counts_ref_alt <- merge(counts_ref, counts_alt, by=c("SNP","chr","snp_pos","ref_allele","alt_allele","strand"), all=T)
+  counts_ref_alt <- merge(counts_ref, counts_alt, by=c("SNP","chr","pos","ref_allele","alt_allele","strand"), all=T)
   
   message(paste0(colnames(counts_ref_alt),collapse = "\t"))
   
@@ -474,8 +481,8 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
                              condition=factor(rep(rownames(ds_cond_data), each=2)))
   column_order$order <- paste0(column_order$condition,"_",column_order$count)
   
-  counts_ref_alt <- counts_ref_alt[,c("ID.x","SNP","chr","snp_pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
-  colnames(counts_ref_alt) <- c("ID","SNP","chr","snp_pos","ref_allele","alt_allele","allele","strand",column_order$order)
+  counts_ref_alt <- counts_ref_alt[,c("ID.x","SNP","chr","pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
+  colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand",column_order$order)
   message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
   
   counts_mat <- as.matrix(counts_ref_alt[,column_order$order])
@@ -498,7 +505,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"))
   
   # Add in the oligo info
-  oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"snp_pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
+  oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
   message("combining data")
   message(nrow(res.diff))
   message(nrow(counts_mat))
