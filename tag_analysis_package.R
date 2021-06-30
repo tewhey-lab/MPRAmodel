@@ -276,6 +276,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     
     message("Writing bed File")
     full_bed_outputA<-merge(attributesData, as.matrix(dups_output),by.x="ID",by.y="row.names",all.x=TRUE,no.dups=FALSE)
+    message(paste0(colnames(full_bed_outputA), collapse = "\t"))
     #printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]    
     printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","ctrl_mean","exp_mean","pvalue","padj","lfcSE","project")]        
     printbed$score<-"."
