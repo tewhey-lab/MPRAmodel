@@ -203,7 +203,7 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c()){
     message(celltype)
     dispersions(dds_rna[[celltype]])[which(is.na(dispersions(dds_rna[[celltype]])))] <- 10 #max(dispersions(dds_results))
     mcols(dds_results)$dispersion <- dispersions(dds_rna[[celltype]])
-    dds_results <- nbinomWaldTest(dds_results, cooksCutoff=F, independentFiltering=F)
+    dds_results <- nbinomWaldTest(dds_results, minReplicatesForReplace=Inf)
   }
   message(paste(dim(dds_results), collapse = "\t"))
   return(dds_results)
