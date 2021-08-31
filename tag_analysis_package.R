@@ -498,11 +498,11 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # Run DESeq analysis
   dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
   sizeFactors(dds) <- rep(1, total_reps*total_cond)
-  dds <- DESeq(dds, fitType = "local")
+  dds <- DESeq(dds, fitType = "local", minReplicatesForReplace=Inf)
   
   # Get the skew results
   cell_res <- paste0("condition",celltype,".countalt")
-  res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"))
+  res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   
   # Add in the oligo info
   oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
