@@ -467,11 +467,17 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),,drop=F]
   colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
   message(class(rownames(counts_ref)))
-  counts_ref <- cbind(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")])
+  counts_ref <- merge(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")], by.x="row.names",by.y="ID",all.x=T)
+  counts_ref <- unique(counts_ref)
+  rownames(counts_ref) <- counts_ref$Row.names
+  counts_ref <- counts_ref[,-1]
   
   counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),,drop=F]
   colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
-  counts_alt <- cbind(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")])
+  counts_alt <- merge(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")], by.x="row.names",by.y="ID",all.x=T)
+  counts_alt <- unique(counts_alt)
+  rownames(counts_alt) <- counts_alt$Row.names
+  counts_alt <- counts_alt[,-1]
   
   counts_ref_alt <- merge(counts_ref, counts_alt, by=c("SNP","chr","pos","ref_allele","alt_allele","strand"), all=T)
   
