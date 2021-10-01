@@ -446,9 +446,9 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # Prepare the sample table
   total_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition=="DNA"),]))
   total_cond <- length(unique(ds_cond_data$condition))
-  samps <- data.frame(reps=factor(rep(rep(1:(total_reps), each=2), total_cond)),
-                      count=factor(rep(c("ref","alt"),(total_reps*total_cond)), levels = c("ref","alt")),
-                      condition=factor(rep(unique(ds_cond_data$condition), each=total_reps*2)))
+  samps <- data.frame(material=factor(rep(c(rep("RNA",total_reps),rep("DNA",total_reps)),total_cond)),
+                      allele=factor(rep(c("ref","alt"),(total_reps*total_cond)), levels = c("ref","alt")),
+                      sample=factor(rep(unique(ds_cond_data$condition), each=total_reps*2)))
   
   
   # Reorganize the count data
@@ -483,9 +483,9 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   message(paste0(colnames(counts_ref_alt),collapse = "\t"))
   
-  column_order <- data.frame(count=factor(rep(c("ref","alt"),(total_reps*total_cond)), levels = c("ref","alt")),
+  column_order <- data.frame(allele=factor(rep(c("ref","alt"),(total_reps*total_cond)), levels = c("ref","alt")),
                              condition=factor(rep(rownames(ds_cond_data), each=2)))
-  column_order$order <- paste0(column_order$condition,"_",column_order$count)
+  column_order$order <- paste0(column_order$condition,"_",column_order$allele)
   
   counts_ref_alt <- counts_ref_alt[,c("ID.x","SNP","chr","pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
   colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand",column_order$order)
@@ -499,24 +499,28 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   message(paste0("counts_mat_comp: ",nrow(counts_mat)))
   
   # Set Design definition
-  design <- ~condition + condition:reps + condition:count
+  design <- ~sample + allele
   
   # Run DESeq analysis
   dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
+  dds$sample.n <- factor(rep(LETTERS[1:total_reps], total_cond*2))
+  design(dds) <- ~material + material:sample.n + material:allele
   sizeFactors(dds) <- rep(1, total_reps*total_cond)
   dds <- DESeq(dds, fitType = "local", minReplicatesForReplace=Inf)
   
   # Get the skew results
   cell_res <- paste0("condition",celltype,".countalt")
+  res.expr <- results(dds, contrast=c(0,1,rep(c(-1/total_reps,1/total_reps),each=total_cond),-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   
   # Add in the oligo info
   oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
   message("combining data")
   message(nrow(res.diff))
+  message(nrow(res.expr))
   message(nrow(counts_mat))
   message(nrow(oligo_info))
-  res_comp <- cbind(oligo_info,res.diff)
+  res_comp <- cbind(oligo_info,as.data.frame(res.expr),as.data.frame(res.diff))
   
   return(res_comp)
 }
