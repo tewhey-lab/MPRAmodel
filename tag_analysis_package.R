@@ -531,7 +531,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   # Get the skew results
   cell_res <- paste0("condition",celltype,".countalt")
-  res.expr <- results(dds, contrast=c(0,1,rep(c(-1/total_reps,1/total_reps),each=total_cond),-1/total_cond,1/total_cond))
+  res.expr <- results(dds, contrast=c(0,1,-1/rna_reps,1/rna_reps,-1/dna_reps,1/dna_reps,-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   
   # Add in the oligo info
