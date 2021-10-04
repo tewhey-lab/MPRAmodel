@@ -466,6 +466,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # Prepare the sample table
   dna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition=="DNA"),]))
   rna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition==celltype),]))
+  avg_reps <- (dna_reps+rna_reps)/2
   total_cond <- length(unique(ds_cond_data$condition))
   samps <- data.frame(material=factor(rep(c(rep("RNA",rna_reps),rep("DNA",dna_reps)),total_cond)),
                       allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps)*total_cond)), levels = c("ref","alt")),
@@ -532,7 +533,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # Get the skew results
   cell_res <- paste0("condition",celltype,".countalt")
   message(paste0(resultsNames(dds), collapse = "\t"))
-  res.expr <- results(dds, contrast=c(0,1,-1/rna_reps,1/rna_reps,-1/dna_reps,1/dna_reps,-1/total_cond,1/total_cond))
+  res.expr <- results(dds, contrast=c(0,1,-1/avg_reps,1/avg_reps,-1/avg_reps,1/avg_reps,-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   
   # Add in the oligo info
