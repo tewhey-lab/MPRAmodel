@@ -491,7 +491,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   counts_ref <- merge(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")], by.x="row.names",by.y="ID",all.x=T)
   counts_ref <- unique(counts_ref)
   rownames(counts_ref) <- counts_ref$Row.names
-  counts_ref <- counts_ref[,-1]
+  counts_ref$ID <- counts_ref$Row.names
   
   counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),,drop=F]
   colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
@@ -508,7 +508,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
                              condition=factor(rep(rownames(ds_cond_data), each=2)))
   column_order$order <- paste0(column_order$condition,"_",column_order$allele)
   
-  counts_ref_alt <- counts_ref_alt[,c("ID.x","SNP","chr","pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
+  counts_ref_alt <- counts_ref_alt[,c("ID","SNP","chr","pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
   colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand",column_order$order)
   message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
   
