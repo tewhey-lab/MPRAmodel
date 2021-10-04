@@ -464,11 +464,12 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   message(class(ds_cond_data))
   
   # Prepare the sample table
-  total_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition=="DNA"),]))
+  dna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition=="DNA"),]))
+  rna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition==celltype),]))
   total_cond <- length(unique(ds_cond_data$condition))
-  samps <- data.frame(material=factor(rep(c(rep("RNA",total_reps),rep("DNA",total_reps)),total_cond)),
-                      allele=factor(rep(c("ref","alt"),(total_reps*total_cond)), levels = c("ref","alt")),
-                      sample=factor(rep(unique(ds_cond_data$condition), each=total_reps*2)))
+  samps <- data.frame(material=factor(rep(c(rep("RNA",rna_reps),rep("DNA",dna_reps)),total_cond)),
+                      allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps)*total_cond)), levels = c("ref","alt")),
+                      sample=factor(rep(unique(ds_cond_data$condition), each=(dna_reps+rna_reps)*2)))
   
   
   # Reorganize the count data
@@ -503,7 +504,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   message(paste0(colnames(counts_ref_alt),collapse = "\t"))
   
-  column_order <- data.frame(allele=factor(rep(c("ref","alt"),(total_reps*total_cond)), levels = c("ref","alt")),
+  column_order <- data.frame(allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps)*total_cond)), levels = c("ref","alt")),
                              condition=factor(rep(rownames(ds_cond_data), each=2)))
   column_order$order <- paste0(column_order$condition,"_",column_order$allele)
   
@@ -523,9 +524,9 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   # Run DESeq analysis
   dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
-  dds$sample.n <- factor(rep(LETTERS[1:total_reps], total_cond*2))
+  dds$sample.n <- factor(c(rep(LETTERS[1:rna_reps], total_cond*2), rep(LETTERS[1:dna_reps], total_cond*2)))
   design(dds) <- ~material + material:sample.n + material:allele
-  sizeFactors(dds) <- rep(1, total_reps*total_cond)
+  sizeFactors(dds) <- rep(1, (dna_reps+rna_reps)*total_cond)
   dds <- DESeq(dds, fitType = "local", minReplicatesForReplace=Inf)
   
   # Get the skew results
