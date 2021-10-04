@@ -531,6 +531,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   # Get the skew results
   cell_res <- paste0("condition",celltype,".countalt")
+  message(paste0(resultsNames(dds), collapse = "\t"))
   res.expr <- results(dds, contrast=c(0,1,-1/rna_reps,1/rna_reps,-1/dna_reps,1/dna_reps,-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   
