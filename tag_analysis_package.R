@@ -23,7 +23,7 @@ fileDate <- function(){
 # attributesData  : table of full attributes, columns should include: ID, SNP, Project, Window, Strand, Allele,
   # Haplotype, Bash
 ## Returns: attributes table with ctrl_exp column which resolves oligos which serve as negative and positive controls
-addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="UKBB"){
+addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ"){
   if("Haplotype" %in% colnames(attributesData)){
     names(attributesData)[names(attributesData) == "Haplotype"] <- "haplotype"
   }
@@ -666,7 +666,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="UKBB", tTest=T, DEase=T, ...){
+tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=T, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
