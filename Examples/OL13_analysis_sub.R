@@ -14,6 +14,6 @@ count_PROJ <- read.delim("/full/path/to/count/table", stringsAsFactors=F)
 source("/full/path/to/repository/tag_analysis_package.R")
 
 #Run the analysis
-tagWrapper(count_PROJ, attr_PROJ, cond_PROJ, filePrefix="example_prefix")
+tagWrapper(count_PROJ, attr_PROJ, cond_PROJ, filePrefix="example_prefix", projectName="your_base_project_name")
 
 writeLines(capture.output(sessionInfo()), "sessionInfo.txt")
