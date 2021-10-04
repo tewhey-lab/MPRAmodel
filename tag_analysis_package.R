@@ -39,6 +39,26 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
   if("snp_pos" %in% colnames(attributesData)){
     names(attributesData)[names(attributesData) == "snp_pos"] <- "pos"
   }
+  #Check for duplicate IDs, and combine projects if they exist
+  
+  id_freq <- as.data.frame(table(attributesData$ID))
+  dup_ids <- id_freq[which(id_freq$Freq > 1),]
+  if(nrow(dup_ids) > 0){
+    for(id in dup_ids$Var1){
+      tmp <- attributesData[which(attributesData$ID==id),]
+      proj_new <- paste0(tmp$proj,collapse=",")
+      attributesData$project[which(attributesData$ID==id)] <- proj_new
+    }
+    
+    attributesData <- unique(attributesData)
+    id_freq <- as.data.frame(table(attributesData$ID))
+    dup_ids <- id_freq[which(id_freq$Freq > 1),]
+    if(nrow(dup_ids) > 1){
+      stop("Duplicate IDs found in Attributes file. Please check for mismatching information.")
+    }
+  }
+  
+  
   multi_project_check <- colsplit(attributesData$project, ",", names = c("proj1","proj2"))
   if(any(is.na(multi_project_check$proj2))){
     attributesData$ctrl_exp <- attributesData$project
