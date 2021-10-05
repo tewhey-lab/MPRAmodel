@@ -189,26 +189,26 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
   dds_results <- tagSig(dds_results, dds_rna, cond_data, exclList)
 
   # Plot normalized density for each cell type -
-  for (celltype in levels(cond_data$condition)) {
-    if(celltype == "DNA" | celltype %in% exclList) next
-
-    temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
-
-    outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
-
-    message("Plotting Normalization Curves")
-    pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
-    plot(density(temp_outputB[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
-    lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
-    lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
-    lines(density(outputA[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="salmon")
-    text(1.5,0.4,adj=c(0,0),labels="All - baseline",col="black")
-    text(1.5,0.35,adj=c(0,0),labels="All - corrected",col="red")
-    text(1.5,0.3,adj=c(0,0),labels=paste0(negCtrlName," - baseline"),col="grey")
-    text(1.5,0.25,adj=c(0,0),labels=paste0(negCtrlName," - corrected"),col="salmon")
-    abline(v=0)
-    dev.off()
-  }
+  # for (celltype in levels(cond_data$condition)) {
+  #   if(celltype == "DNA" | celltype %in% exclList) next
+  # 
+  #   temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
+  # 
+  #   outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
+  # 
+  #   message("Plotting Normalization Curves")
+  #   pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
+  #   plot(density(temp_outputB[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
+  #   lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
+  #   lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
+  #   lines(density(outputA[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="salmon")
+  #   text(1.5,0.4,adj=c(0,0),labels="All - baseline",col="black")
+  #   text(1.5,0.35,adj=c(0,0),labels="All - corrected",col="red")
+  #   text(1.5,0.3,adj=c(0,0),labels=paste0(negCtrlName," - baseline"),col="grey")
+  #   text(1.5,0.25,adj=c(0,0),labels=paste0(negCtrlName," - corrected"),col="salmon")
+  #   abline(v=0)
+  #   dev.off()
+  # }
   return(dds_results)
 }
 
@@ -252,6 +252,8 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     counts_DE <- counts(dds_results, normalized=F)
     counts_norm_DE <- expandDups(counts_DE)
   }
+  
+  return(counts_norm_DE)
   
   full_output<-list()
   full_output_var<-list()
@@ -468,9 +470,9 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   rna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition==celltype),]))
   avg_reps <- (dna_reps+rna_reps)/2
   total_cond <- length(unique(ds_cond_data$condition))
-  samps <- data.frame(material=factor(rep(c(rep("RNA",rna_reps),rep("DNA",dna_reps)),total_cond)),
-                      allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps)*total_cond)), levels = c("ref","alt")),
-                      sample=factor(rep(unique(ds_cond_data$condition), each=(dna_reps+rna_reps)*2)))
+  samps <- data.frame(material=factor(c(rep("DNA",rna_reps*total_cond),rep("RNA",dna_reps*total_cond))),
+                      allele=factor(rep(c("ref","alt"),((max(dna_reps,rna_reps))*total_cond)), levels = c("ref","alt")),
+                      sample=factor(rep(c(rownames(ds_cond_data)),each=2)))
   
   
   # Reorganize the count data
@@ -505,9 +507,9 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   message(paste0(colnames(counts_ref_alt),collapse = "\t"))
   
-  column_order <- data.frame(allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps)*total_cond)), levels = c("ref","alt")),
-                             condition=factor(rep(rownames(ds_cond_data), each=2)))
-  column_order$order <- paste0(column_order$condition,"_",column_order$allele)
+  column_order <- data.frame(allele=factor(rep(c("ref","alt"),((max(dna_reps,rna_reps))*total_cond)), levels = c("ref","alt")),
+                             sample=factor(rep(c(rownames(ds_cond_data)),each=2)))
+  column_order$order <- paste0(column_order$sample,"_",column_order$allele)
   
   counts_ref_alt <- counts_ref_alt[,c("ID","SNP","chr","pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
   colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand",column_order$order)
@@ -525,25 +527,35 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   # Run DESeq analysis
   dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
-  dds$sample.n <- factor(c(rep(LETTERS[1:(rna_reps+dna_reps)], total_cond*2)))
+  dds$sample.n <- factor(rep(LETTERS[1:(max(dna_reps,rna_reps))], total_cond, each=2))
   design(dds) <- ~material + material:sample.n + material:allele
   sizeFactors(dds) <- rep(1, (dna_reps+rna_reps)*total_cond)
-  dds <- DESeq(dds, fitType = "local", minReplicatesForReplace=Inf)
+  if(dna_reps != rna_reps){
+    mm <- model.matrix(~material + material:sample.n + material:allele, colData(dds))
+    dds <- DESeq(dds, full = mm, betaPrior = F, fitType = "local", minReplicatesForReplace=Inf)
+  }
+  else{
+    dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
+  }
   
   # Get the skew results
   cell_res <- paste0("condition",celltype,".countalt")
   message(paste0(resultsNames(dds), collapse = "\t"))
-  res.expr <- results(dds, contrast=c(0,1,-1/rna_reps,1/rna_reps,-1/dna_reps,1/dna_reps,-1/total_cond,1/total_cond))
-  res.diff <- results(dds, contrast=list(cell_res, "conditionDNA.countalt"), cooksCutoff=FALSE, independentFiltering=FALSE)
+  cf <- 1/(min(dna_reps,rna_reps))
+  res.expr <- results(dds, contrast=c(0,1,rep(c(-cf,cf),max(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
+  res.diff <- results(dds, contrast=list("materialRNA.allelealt", "materialDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
+  
+  names(res.expr) <- paste0(names(res.expr),"_","expr")
+  names(res.diff) <- paste0(names(res.diff),"_","allele")
   
   # Add in the oligo info
-  oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
+  oligo_info <- attr_FADS[which(attr_FADS$ID %in% ids_comp),c("ID", "SNP",	"chr",	"snp_pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
   message("combining data")
   message(nrow(res.diff))
   message(nrow(res.expr))
   message(nrow(counts_mat))
   message(nrow(oligo_info))
-  res_comp <- cbind(oligo_info,as.data.frame(res.expr),as.data.frame(res.diff))
+  res_comp <- cbind(oligo_info, counts_mat,as.data.frame(res.expr),as.data.frame(res.diff))
   
   return(res_comp)
 }
