@@ -253,7 +253,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     counts_norm_DE <- expandDups(counts_DE)
   }
   
-  return(counts_norm_DE)
+  # return(counts_norm_DE)
   
   full_output<-list()
   full_output_var<-list()
