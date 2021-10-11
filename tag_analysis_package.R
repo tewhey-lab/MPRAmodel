@@ -189,26 +189,26 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
   dds_results <- tagSig(dds_results, dds_rna, cond_data, exclList)
 
   # Plot normalized density for each cell type -
-  # for (celltype in levels(cond_data$condition)) {
-  #   if(celltype == "DNA" | celltype %in% exclList) next
-  # 
-  #   temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
-  # 
-  #   outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
-  # 
-  #   message("Plotting Normalization Curves")
-  #   pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
-  #   plot(density(temp_outputB[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
-  #   lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
-  #   lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
-  #   lines(density(outputA[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="salmon")
-  #   text(1.5,0.4,adj=c(0,0),labels="All - baseline",col="black")
-  #   text(1.5,0.35,adj=c(0,0),labels="All - corrected",col="red")
-  #   text(1.5,0.3,adj=c(0,0),labels=paste0(negCtrlName," - baseline"),col="grey")
-  #   text(1.5,0.25,adj=c(0,0),labels=paste0(negCtrlName," - corrected"),col="salmon")
-  #   abline(v=0)
-  #   dev.off()
-  # }
+  for (celltype in levels(cond_data$condition)) {
+    if(celltype == "DNA" | celltype %in% exclList) next
+
+    temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
+
+    outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
+
+    message("Plotting Normalization Curves")
+    pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
+    plot(density(temp_outputB[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
+    lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
+    lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
+    lines(density(outputA[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="salmon")
+    text(1.5,0.4,adj=c(0,0),labels="All - baseline",col="black")
+    text(1.5,0.35,adj=c(0,0),labels="All - corrected",col="red")
+    text(1.5,0.3,adj=c(0,0),labels=paste0(negCtrlName," - baseline"),col="grey")
+    text(1.5,0.25,adj=c(0,0),labels=paste0(negCtrlName," - corrected"),col="salmon")
+    abline(v=0)
+    dev.off()
+  }
   return(dds_results)
 }
 
