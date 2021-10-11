@@ -91,7 +91,7 @@ oligoIsolate <- function(countsData){
 # data should initially be read in such that samples are row names
 ## Returns: standardized condition data, factorizing the cell types and categorizing DNA as 1 and RNA as 0
 conditionStandard <- function(conditionData){
-  cond_data <- conditionData
+  cond_data <- as.data.frame(conditionData)
   colnames(cond_data)[1] <- "condition"
   cond_data[,1] <- factor(cond_data[,1])
   cond_data$condition <- relevel(cond_data$condition, "DNA")
@@ -466,6 +466,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # message(class(ds_cond_data))
   
   # Prepare the sample table
+  message("Preparing Sample Table")
   dna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition=="DNA"),]))
   rna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition==celltype),]))
   avg_reps <- (dna_reps+rna_reps)/2
