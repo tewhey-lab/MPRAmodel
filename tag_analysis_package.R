@@ -463,7 +463,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
 DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),], row.names=rownames(conditionData))
-  message(class(ds_cond_data))
+  # message(class(ds_cond_data))
   
   # Prepare the sample table
   dna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition=="DNA"),]))
@@ -484,13 +484,13 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   snp_data_pairs <- snp_data[snp_data$comb %in% tmp_ct[tmp_ct$Freq==2,]$Var1,]
   
   id_ref_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="ref")]
-  message(length(id_ref_all))
+  # message(length(id_ref_all))
   id_alt_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="alt")]
-  message(length(id_alt_all))
+  # message(length(id_alt_all))
   
   counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),,drop=F]
   colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
-  message(class(rownames(counts_ref)))
+  # message(class(rownames(counts_ref)))
   counts_ref <- merge(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")], by.x="row.names",by.y="ID",all.x=T)
   counts_ref <- unique(counts_ref)
   rownames(counts_ref) <- counts_ref$Row.names
@@ -505,7 +505,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   counts_ref_alt <- merge(counts_ref, counts_alt, by=c("SNP","chr","pos","ref_allele","alt_allele","strand"), all=T)
   
-  message(paste0(colnames(counts_ref_alt),collapse = "\t"))
+  # message(paste0(colnames(counts_ref_alt),collapse = "\t"))
   
   column_order <- data.frame(allele=factor(rep(c("ref","alt"),((max(dna_reps,rna_reps))*total_cond)), levels = c("ref","alt")),
                              sample=factor(rep(c(rownames(ds_cond_data)),each=2)))
@@ -513,14 +513,14 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   counts_ref_alt <- counts_ref_alt[,c("ID","SNP","chr","pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
   colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand",column_order$order)
-  message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
+  # message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
   
   counts_mat <- as.matrix(counts_ref_alt[,column_order$order])
-  message(paste0("counts_mat_og: " ,nrow(counts_mat)))
+  # message(paste0("counts_mat_og: " ,nrow(counts_mat)))
   ids_comp <- counts_ref_alt$ID[complete.cases(counts_mat)]
-  message(paste0("tot_id: ",length(ids_comp)))
+  # message(paste0("tot_id: ",length(ids_comp)))
   counts_mat <- counts_mat[complete.cases(counts_mat),]
-  message(paste0("counts_mat_comp: ",nrow(counts_mat)))
+  # message(paste0("counts_mat_comp: ",nrow(counts_mat)))
   
   # Set Design definition
   design <- ~sample + allele
@@ -540,7 +540,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   # Get the skew results
   cell_res <- paste0("condition",celltype,".countalt")
-  message(paste0(resultsNames(dds), collapse = "\t"))
+  # message(paste0(resultsNames(dds), collapse = "\t"))
   cf <- 1/(min(dna_reps,rna_reps))
   res.expr <- results(dds, contrast=c(0,1,rep(c(-cf,cf),max(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list("materialRNA.allelealt", "materialDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
@@ -551,10 +551,10 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # Add in the oligo info
   oligo_info <- attr_FADS[which(attr_FADS$ID %in% ids_comp),c("ID", "SNP",	"chr",	"snp_pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
   message("combining data")
-  message(nrow(res.diff))
-  message(nrow(res.expr))
-  message(nrow(counts_mat))
-  message(nrow(oligo_info))
+  # message(nrow(res.diff))
+  # message(nrow(res.expr))
+  # message(nrow(counts_mat))
+  # message(nrow(oligo_info))
   res_comp <- cbind(oligo_info, counts_mat,as.data.frame(res.expr),as.data.frame(res.diff))
   
   return(res_comp)
