@@ -462,7 +462,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
 
 DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
-  ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),], row.names=rownames(conditionData))
+  ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),,drop=F],)
   # message(class(ds_cond_data))
   
   # Prepare the sample table
@@ -471,9 +471,9 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   rna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition==celltype),]))
   avg_reps <- (dna_reps+rna_reps)/2
   total_cond <- length(unique(ds_cond_data$condition))
-  samps <- data.frame(material=factor(c(rep("DNA",rna_reps*total_cond),rep("RNA",dna_reps*total_cond))),
-                      allele=factor(rep(c("ref","alt"),((max(dna_reps,rna_reps))*total_cond)), levels = c("ref","alt")),
-                      sample=factor(rep(c(rownames(ds_cond_data)),each=2)))
+  samps <- data.frame(material=factor(c(rep("DNA",dna_reps*total_cond),rep("RNA",rna_reps*total_cond))),
+                      allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps)*total_cond)), levels = c("ref","alt")),
+                      sample=factor(rep(c(rownames(ds_cond_data)[which(ds_cond_data$condition=="DNA")], rownames(ds_cond_data)[which(ds_cond_data$condition==celltype)]),each=total_cond)))
   
   
   # Reorganize the count data
@@ -489,7 +489,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   id_alt_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="alt")]
   # message(length(id_alt_all))
   
-  counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),,drop=F]
+  counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),colnames(counts_norm) %in% rownames(ds_cond_data),drop=F]
   colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
   # message(class(rownames(counts_ref)))
   counts_ref <- merge(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")], by.x="row.names",by.y="ID",all.x=T)
@@ -497,7 +497,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   rownames(counts_ref) <- counts_ref$Row.names
   counts_ref$ID <- counts_ref$Row.names
   
-  counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),,drop=F]
+  counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),colnames(counts_norm) %in% rownames(ds_cond_data),drop=F]
   colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
   counts_alt <- merge(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand")], by.x="row.names",by.y="ID",all.x=T)
   counts_alt <- unique(counts_alt)
@@ -508,8 +508,8 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   # message(paste0(colnames(counts_ref_alt),collapse = "\t"))
   
-  column_order <- data.frame(allele=factor(rep(c("ref","alt"),((max(dna_reps,rna_reps))*total_cond)), levels = c("ref","alt")),
-                             sample=factor(rep(c(rownames(ds_cond_data)),each=2)))
+  column_order <- data.frame(allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps)*total_cond)), levels = c("ref","alt")),
+                             sample=factor(rep(c(rownames(ds_cond_data)[which(ds_cond_data$condition=="DNA")], rownames(ds_cond_data)[which(ds_cond_data$condition==celltype)]),each=total_cond)))
   column_order$order <- paste0(column_order$sample,"_",column_order$allele)
   
   counts_ref_alt <- counts_ref_alt[,c("ID","SNP","chr","pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
@@ -528,11 +528,13 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   # Run DESeq analysis
   dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
-  dds$sample.n <- factor(rep(LETTERS[1:(max(dna_reps,rna_reps))], total_cond, each=2))
+  dds$sample.n <- factor(rep(LETTERS[1:(dna_reps+rna_reps)], total_cond))
   design(dds) <- ~material + material:sample.n + material:allele
   sizeFactors(dds) <- rep(1, (dna_reps+rna_reps)*total_cond)
   if(dna_reps != rna_reps){
     mm <- model.matrix(~material + material:sample.n + material:allele, colData(dds))
+    col_mm <- ncol(mm)
+    mm <- mm[,c(1:((min(dna_reps,rna_reps))*2),(col_mm-1),col_mm)]
     dds <- DESeq(dds, full = mm, betaPrior = F, fitType = "local", minReplicatesForReplace=Inf)
   }
   else{
@@ -543,14 +545,14 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   cell_res <- paste0("condition",celltype,".countalt")
   # message(paste0(resultsNames(dds), collapse = "\t"))
   cf <- 1/(min(dna_reps,rna_reps))
-  res.expr <- results(dds, contrast=c(0,1,rep(c(-cf,cf),max(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
+  res.expr <- results(dds, contrast=c(0,1,rep(c(-cf,cf),min(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list("materialRNA.allelealt", "materialDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   
   names(res.expr) <- paste0(names(res.expr),"_","expr")
   names(res.diff) <- paste0(names(res.diff),"_","allele")
   
   # Add in the oligo info
-  oligo_info <- attr_FADS[which(attr_FADS$ID %in% ids_comp),c("ID", "SNP",	"chr",	"snp_pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
+  oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
   message("combining data")
   # message(nrow(res.diff))
   # message(nrow(res.expr))
