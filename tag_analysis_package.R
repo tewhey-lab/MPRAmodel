@@ -548,8 +548,8 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   res.expr <- results(dds, contrast=c(0,1,rep(c(-cf,cf),min(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list("materialRNA.allelealt", "materialDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   
-  names(res.expr) <- paste0(names(res.expr),"_","expr")
-  names(res.diff) <- paste0(names(res.diff),"_","allele")
+  names(res.expr) <- paste0(names(res.expr),"_","A")
+  names(res.diff) <- paste0(names(res.diff),"_","B")
   
   # Add in the oligo info
   oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
@@ -558,7 +558,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # message(nrow(res.expr))
   # message(nrow(counts_mat))
   # message(nrow(oligo_info))
-  res_comp <- cbind(oligo_info, counts_mat,as.data.frame(res.expr),as.data.frame(res.diff))
+  res_comp <- cbind(oligo_info, as.data.frame(res.expr),as.data.frame(res.diff))
   
   return(res_comp)
 }
@@ -704,7 +704,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=T, ...){
+tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=F, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
