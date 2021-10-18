@@ -396,14 +396,14 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
       A_Ctrl_Mean <- snp_data_expdata_pairs[evens, "ctrl_mean"],
       A_Exp_Mean <- snp_data_expdata_pairs[evens, "exp_mean"],
       A_log2FC <- snp_data_expdata_pairs[evens, "log2FoldChange"],
-      A_log2FC_SE <- -log10(snp_data_expdata_pairs[evens, "lfcSE"]),
+      A_log2FC_SE <- snp_data_expdata_pairs[evens, "lfcSE"],
       A_logP <- -log10(snp_data_expdata_pairs[evens, "pvalue"]),
       A_logPadj_BH <- -log10(snp_data_expdata_pairs[evens, "padj"]),    #BF Correction
       A_logPadj_BF <- -log10(snp_data_expdata_pairs[evens, "pvalue"]*(nrow(snp_data_expdata_pairs)/2)),    #BF Correction
       B_Ctrl_Mean <- snp_data_expdata_pairs[odds, "ctrl_mean"],
       B_Exp_Mean <- snp_data_expdata_pairs[odds, "exp_mean"],
       B_log2FC <- snp_data_expdata_pairs[odds, "log2FoldChange"],
-      B_log2FC_SE <- -log10(snp_data_expdata_pairs[odds, "lfcSE"]),
+      B_log2FC_SE <- snp_data_expdata_pairs[odds, "lfcSE"],
       B_logP <- -log10(snp_data_expdata_pairs[odds, "pvalue"]),
       B_logPadj_BH <- -log10(snp_data_expdata_pairs[odds, "padj"]),    #BF Correction
       B_logPadj_BF <- -log10(snp_data_expdata_pairs[odds, "pvalue"]*(nrow(snp_data_expdata_pairs)/2))),{   #BF Correction
@@ -447,6 +447,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
         t.test(as.numeric(ratios_A[i,]), as.numeric(ratios_B[i,]), var.equal=F, paired=T)$statistic})
 
   out2$LogSkew <- out2$B_log2FC - out2$A_log2FC
+  out2$LogSkew_SE <- sqrt(out2$A_log2FC_SE^2+out2$B_log2FC_SE^2)
   out2$Skew_logP <- ifelse(is.na(t_pvalue), 0, -log10(t_pvalue))
 
   OE_threshold <- -log10(.01)
