@@ -282,7 +282,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     message(paste0(colnames(dups_output),collapse = "\t"))
 
     message("Writing Standard Results File")
-    full_outputA<-merge(attributesData, as.matrix(dups_output), by.x="ID", by.y="row.names", all.x=TRUE, no.dups=F)
+    full_outputA<-merge(attributesData, as.data.frame(dups_output), by.x="ID", by.y="row.names", all.x=TRUE, no.dups=F)
     full_output[[celltype]]<-full_outputA
     write.table(full_outputA, paste0("results/", file_prefix, "_", celltype, "_", fileDate(), ".out"), row.names=F, col.names=T, sep="\t", quote=F)
 
@@ -398,14 +398,14 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
       A_log2FC <- snp_data_expdata_pairs[evens, "log2FoldChange"],
       A_log2FC_SE <- snp_data_expdata_pairs[evens, "lfcSE"],
       A_logP <- -log10(snp_data_expdata_pairs[evens, "pvalue"]),
-      A_logPadj_BH <- -log10(snp_data_expdata_pairs[evens, "padj"]),    #BF Correction
+      A_logPadj_BH <- -log10(snp_data_expdata_pairs[evens, "padj"]),    #BH Correction
       A_logPadj_BF <- -log10(snp_data_expdata_pairs[evens, "pvalue"]*(nrow(snp_data_expdata_pairs)/2)),    #BF Correction
       B_Ctrl_Mean <- snp_data_expdata_pairs[odds, "ctrl_mean"],
       B_Exp_Mean <- snp_data_expdata_pairs[odds, "exp_mean"],
       B_log2FC <- snp_data_expdata_pairs[odds, "log2FoldChange"],
       B_log2FC_SE <- snp_data_expdata_pairs[odds, "lfcSE"],
       B_logP <- -log10(snp_data_expdata_pairs[odds, "pvalue"]),
-      B_logPadj_BH <- -log10(snp_data_expdata_pairs[odds, "padj"]),    #BF Correction
+      B_logPadj_BH <- -log10(snp_data_expdata_pairs[odds, "padj"]),    #BH Correction
       B_logPadj_BF <- -log10(snp_data_expdata_pairs[odds, "pvalue"]*(nrow(snp_data_expdata_pairs)/2))),{   #BF Correction
         A_logP[is.na(A_logP)] <- 0
         A_logP[A_logP == Inf] <- max(A_logP[is.finite(A_logP)])
