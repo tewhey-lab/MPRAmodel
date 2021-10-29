@@ -82,7 +82,7 @@ oligoIsolate <- function(countsData, file_prefix){
   tag_counts <- aggregate(. ~Oligo, data=countsData[,-1], FUN = sum)
   counts_oligo <- tag_counts[,-1]
   rownames(counts_oligo) <- tag_counts[,1]
-  write.table(counts_oligo, paste0("results/", file_prefix, "_", fileDate(), "counts.out"))
+  write.table(counts_oligo, paste0("results/", file_prefix, "_", fileDate(), "_counts.out"))
   return(counts_oligo)
 }
 
@@ -249,7 +249,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
   colnames(count_data) <- row.names(cond_data)
   counts_norm <- counts(dds_results, normalized = T)
   
-  write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(), "normalized_counts.out"))
+  write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(), "_normalized_counts.out"))
   
   if(DEase==T){
     message("Removing count duplicates")
