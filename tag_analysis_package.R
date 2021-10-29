@@ -112,7 +112,7 @@ conditionStandard <- function(conditionData){
 ## Returns: dds_results (initial)
 processAnalysis <- function(countsData, conditionData, exclList=c()){
   # bring in count data and condition data from previously defined functions
-  count_data <- oligoIsolate(countsData)
+  count_data <- countsData #oligoIsolate(countsData)
   cond_data <- conditionStandard(conditionData)
 
   # make sure that the column names and row names of the count and condition data match
