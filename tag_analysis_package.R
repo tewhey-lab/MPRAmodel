@@ -75,13 +75,14 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
 ### Remove Error, CIGAR, MD and position columns if necessary; aggregrate cound data with relation to the oligo
 # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
 ## Returns: oligo count data with the oligo as row names and the aggregate count data
-oligoIsolate <- function(countsData){
+oligoIsolate <- function(countsData, file_prefix){
   if("Error" %in% colnames(countsData)){
     countsData <- countsData[,c(1,2,7:dim(countsData)[2])]
   }
   tag_counts <- aggregate(. ~Oligo, data=countsData[,-1], FUN = sum)
   counts_oligo <- tag_counts[,-1]
   rownames(counts_oligo) <- tag_counts[,1]
+  write.table(counts_oligo, paste0("results/", file_prefix, "_", fileDate(), "counts.out"))
   return(counts_oligo)
 }
 
@@ -139,7 +140,8 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
   dds_results_orig <- dds_results
   attribute_ids <- (attributesData[attributesData$ctrl_exp==negCtrlName,])$ID
   full_attribute_ids <- attributesData$ID
-  count_data <- oligoIsolate(countsData)
+  #count_data <- oligoIsolate(countsData)
+  count_data <- countsData
   cond_data <- conditionStandard(conditionData)
   colnames(count_data) <- row.names(cond_data)
 
@@ -238,14 +240,16 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c()){
   # and celltype
 ## Returns: writes duplicate output and ttest files for each celltype
 dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",tTest=T, DEase=T){
-  dds_results <- tagNorm(countsData, conditionData, attributesData, exclList, method, negCtrlName)
-  message("Tags Normalized")
-  count_data <- oligoIsolate(countsData)
+  count_data <- oligoIsolate(countsData, file_prefix)
   message("Oligos isolated")
+  dds_results <- tagNorm(count_data, conditionData, attributesData, exclList, method, negCtrlName)
+  message("Tags Normalized")
   cond_data <- conditionStandard(conditionData)
   message("condition data standardized")
   colnames(count_data) <- row.names(cond_data)
   counts_norm <- counts(dds_results, normalized = T)
+  
+  write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(), "normalized_counts.out"))
   
   if(DEase==T){
     message("Removing count duplicates")
