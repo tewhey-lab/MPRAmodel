@@ -82,7 +82,7 @@ oligoIsolate <- function(countsData, file_prefix){
   tag_counts <- aggregate(. ~Oligo, data=countsData[,-1], FUN = sum)
   counts_oligo <- tag_counts[,-1]
   rownames(counts_oligo) <- tag_counts[,1]
-  write.table(counts_oligo, paste0("results/", file_prefix, "_", fileDate(), "_counts.out"))
+  write.table(counts_oligo, paste0("results/", file_prefix, "_", fileDate(), "_counts.out"), quote = F, sep="\t")
   return(counts_oligo)
 }
 
@@ -133,7 +133,7 @@ processAnalysis <- function(countsData, conditionData, exclList=c()){
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 ## Returns: dds_results (normalized)
-tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss', negCtrlName="negCtrl"){
+tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss', negCtrlName="negCtrl", upDisp=T){
   process <- processAnalysis(countsData, conditionData, exclList)
   dds_results <- process[[2]]
   dds <- process[[1]]
@@ -188,8 +188,10 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
   }
 
   # Replace dispersions in normalized dds with the celltype specific dispersions
-  dds_results <- tagSig(dds_results, dds_rna, cond_data, exclList)
-
+  if(upDisp==T){
+    dds_results <- tagSig(dds_results, dds_rna, cond_data, exclList)
+  }
+  
   # Plot normalized density for each cell type -
   for (celltype in levels(cond_data$condition)) {
     if(celltype == "DNA" | celltype %in% exclList) next
@@ -239,17 +241,18 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c()){
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 ## Returns: writes duplicate output and ttest files for each celltype
-dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",tTest=T, DEase=T){
+dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T){
+  countsData <- countsData[,c("Barcode","Oligo",rownames(conditionData))]
   count_data <- oligoIsolate(countsData, file_prefix)
   message("Oligos isolated")
-  dds_results <- tagNorm(count_data, conditionData, attributesData, exclList, method, negCtrlName)
+  dds_results <- tagNorm(count_data, conditionData, attributesData, exclList, method, negCtrlName, upDisp)
   message("Tags Normalized")
   cond_data <- conditionStandard(conditionData)
   message("condition data standardized")
   colnames(count_data) <- row.names(cond_data)
   counts_norm <- counts(dds_results, normalized = T)
   
-  write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(), "_normalized_counts.out"))
+  write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(), "_normalized_counts.out"), quote = F, sep = "\t")
   
   if(DEase==T){
     message("Removing count duplicates")
@@ -292,7 +295,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
 
     if(tTest==T){
       message("Writing T-Test Results File")
-      outA<-cellSpecificTtest(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef)
+      outA<-cellSpecificTtest(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef, correction, cutoff)
       full_output_var[[celltype]]<-outA
       write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     }
@@ -372,7 +375,9 @@ expandDups <- function(output){
 # ctrl_cols       : passed from the dataOut function
 # exp_cols        : passed from the dataOut function
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
-cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef = T){
+# correction      : String indicating what correction method to use for significance cutoff, "BH" for Benjamini Hochburg and "BF" for Bonferroni
+# cutoff          : Integer for significance cutoff to use. 
+cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef = T, correction="BH", cutoff=0.01){
   snp_data <- subset(attributesData,allele=="ref" | allele=="alt")
   snp_data$comb <- paste(snp_data$SNP,"_",snp_data$window,"_",snp_data$strand,"_",snp_data$haplotype,sep="")
   tmp_ct <- as.data.frame(table(snp_data$comb))
@@ -454,8 +459,13 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   out2$LogSkew_SE <- sqrt(out2$A_log2FC_SE^2+out2$B_log2FC_SE^2)
   out2$Skew_logP <- ifelse(is.na(t_pvalue), 0, -log10(t_pvalue))
 
-  OE_threshold <- -log10(.01)
-  is_OE <- out2$A_logPadj_BF >= OE_threshold | out2$B_logPadj_BF >= OE_threshold
+  OE_threshold <- -log10(cutoff)
+  if(correction="BF"){
+    is_OE <- out2$A_logPadj_BF >= OE_threshold | out2$B_logPadj_BF >= OE_threshold
+  }
+  if(correction="BH"){
+    is_OE <- out2$A_logPadj_BH >= OE_threshold | out2$B_logPadj_BH >= OE_threshold
+  }
   out2$Skew_logFDR <- rep(NA, dim(out)[1])
   q_idx <- intersect(which(is_OE), which(!is.na(t_pvalue)))
   out2$Skew_logFDR[q_idx] <- -log10(p.adjust(t_pvalue[q_idx],method="BH"))
@@ -709,7 +719,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=F, ...){
+tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=F, correction="BH", cutoff=0.01, upDisp=T, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
@@ -718,7 +728,7 @@ tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), 
   # Resolve any multi-project conflicts, run normalization, and write celltype specific results files
   attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
   message("running DESeq")
-  analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName, tTest, DEase)
+  analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName, tTest, DEase, correction, cutoff, upDisp)
   cond_data <- conditionStandard(conditionData)
   n <- length(levels(cond_data$condition))
   full_output <- analysis_out[1:(n-1)]
