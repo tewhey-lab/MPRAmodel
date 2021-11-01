@@ -460,10 +460,10 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   out2$Skew_logP <- ifelse(is.na(t_pvalue), 0, -log10(t_pvalue))
 
   OE_threshold <- -log10(cutoff)
-  if(correction="BF"){
+  if(correction=="BF"){
     is_OE <- out2$A_logPadj_BF >= OE_threshold | out2$B_logPadj_BF >= OE_threshold
   }
-  if(correction="BH"){
+  if(correction=="BH"){
     is_OE <- out2$A_logPadj_BH >= OE_threshold | out2$B_logPadj_BH >= OE_threshold
   }
   out2$Skew_logFDR <- rep(NA, dim(out)[1])
