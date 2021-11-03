@@ -559,12 +559,12 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # Get the skew results
   cell_res <- paste0("condition",celltype,".countalt")
   # message(paste0(resultsNames(dds), collapse = "\t"))
-  cf <- 1/(min(dna_reps,rna_reps))
-  res.expr <- results(dds, contrast=c(0,1,rep(c(-cf,cf),min(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
+  # cf <- 1/(min(dna_reps,rna_reps))
+  # res.expr <- results(dds, contrast=c(0,0,rep(c(-cf,cf),min(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list("materialRNA.allelealt", "materialDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   
-  names(res.expr) <- paste0(names(res.expr),"_","A")
-  names(res.diff) <- paste0(names(res.diff),"_","B")
+  # names(res.expr) <- paste0(names(res.expr),"_","A")
+  # names(res.diff) <- paste0(names(res.diff),"_","B")
   
   # Add in the oligo info
   oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
@@ -573,7 +573,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # message(nrow(res.expr))
   # message(nrow(counts_mat))
   # message(nrow(oligo_info))
-  res_comp <- cbind(oligo_info, as.data.frame(res.expr),as.data.frame(res.diff))
+  res_comp <- cbind(oligo_info, as.data.frame(res.diff))
   
   return(res_comp)
 }
