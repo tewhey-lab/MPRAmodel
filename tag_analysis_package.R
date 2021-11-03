@@ -487,7 +487,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   avg_reps <- (dna_reps+rna_reps)/2
   total_cond <- length(unique(ds_cond_data$condition))
   samps <- data.frame(material=factor(c(rep("DNA",dna_reps*total_cond),rep("RNA",rna_reps*total_cond))),
-                      allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps)*total_cond)), levels = c("ref","alt")),
+                      allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps))), levels = c("ref","alt")),
                       sample=factor(rep(c(rownames(ds_cond_data)[which(ds_cond_data$condition=="DNA")], rownames(ds_cond_data)[which(ds_cond_data$condition==celltype)]),each=total_cond)))
   
   
@@ -523,7 +523,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   
   # message(paste0(colnames(counts_ref_alt),collapse = "\t"))
   
-  column_order <- data.frame(allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps)*total_cond)), levels = c("ref","alt")),
+  column_order <- data.frame(allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps))), levels = c("ref","alt")),
                              sample=factor(rep(c(rownames(ds_cond_data)[which(ds_cond_data$condition=="DNA")], rownames(ds_cond_data)[which(ds_cond_data$condition==celltype)]),each=total_cond)))
   column_order$order <- paste0(column_order$sample,"_",column_order$allele)
   
