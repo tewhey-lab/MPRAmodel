@@ -302,7 +302,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     
     if(DEase==T){
       message("Writing DESeq Allelic Skew Results File")
-      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype)
+      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output)
       write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DE_ase_", fileDate(),".out"), row.names=T, col.names=T, sep="\t", quote=F)
     }
     
@@ -475,7 +475,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
 
 ### Function to perform DESeq version of Allelic Skew
 
-DESkew <- function(conditionData, counts_norm, attributesData, celltype){
+DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_output){
   
   ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),,drop=F],)
   # message(class(ds_cond_data))
@@ -498,6 +498,35 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   tmp_ct <- as.data.frame(table(snp_data$comb))
   
   snp_data_pairs <- snp_data[snp_data$comb %in% tmp_ct[tmp_ct$Freq==2,]$Var1,]
+  snp_data_pairs <- merge(snp_data_pairs,dups_output, by.x="ID", by.y="row.names", all.x=T, no.dups=F)
+  
+  out <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),c(1:7,9)]
+  out$A_Ctrl_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"ctrl_mean"]
+  out$A_Exp_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"exp_mean"]
+  out$A_log2FC <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"log2FoldChange"]
+  out$A_log2FC_SE <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"lfcSE"]
+  out$A_logP <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="ref"),"pvalue"])
+  out$A_logP[is.na(out$A_logP)] <- 0
+  out$A_logP[out$A_logP == Inf] <- max(out$A_logP[is.finite(out$A_logP)])
+  out$A_logPadj_BH <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="ref"),"padj"])
+  out$A_logPadj_BH[out$A_logPadj_BH < 0] <- 0
+  out$A_logPadj_BH[out$A_logPadj_BH == Inf] <- max(out$A_logPadj_BH[is.finite(out$A_logPadj_BH)])
+  out$A_logPadj_BF <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="ref"),"pvalue"])*(nrow(snp_data_pairs)/2)
+  out$A_logPadj_BF[out$A_logPadj_BF < 0] <- 0
+  out$A_logPadj_BF[out$A_logPadj_BF == Inf] <- max(out$A_logPadj_BF[is.finite(out$A_logPadj_BF)])
+  out$B_Ctrl_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"ctrl_mean"]
+  out$B_Exp_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"exp_mean"]
+  out$B_log2FC <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"log2FoldChange"]
+  out$B_log2FC_SE <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"lfcSE"]
+  out$B_logP <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"pvalue"])
+  out$B_logP[is.na(out$B_logP)] <- 0
+  out$B_logP[out$B_logP == Inf] <- max(out$B_logP[is.finite(out$B_logP)])
+  out$B_logPadj_BH <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"padj"])
+  out$B_logPadj_BH[out$B_logPadj_BH < 0] <- 0
+  out$B_logPadj_BH[out$B_logPadj_BH == Inf] <- max(out$B_logPadj_BH[is.finite(out$B_logPadj_BH)])
+  out$B_logPadj_BF <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"pvalue"])*(nrow(snp_data_pairs)/2)
+  out$B_logPadj_BF[out$B_logPadj_BF < 0] <- 0
+  out$B_logPadj_BF[out$B_logPadj_BF == Inf] <- max(out$B_logPadj_BF[is.finite(out$B_logPadj_BF)])
   
   id_ref_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="ref")]
   # message(length(id_ref_all))
@@ -567,13 +596,13 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype){
   # names(res.diff) <- paste0(names(res.diff),"_","B")
   
   # Add in the oligo info
-  oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
+  # oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
   message("combining data")
   # message(nrow(res.diff))
   # message(nrow(res.expr))
   # message(nrow(counts_mat))
   # message(nrow(oligo_info))
-  res_comp <- cbind(oligo_info, as.data.frame(res.diff))
+  res_comp <- cbind(out, as.data.frame(res.diff))
   
   return(res_comp)
 }
