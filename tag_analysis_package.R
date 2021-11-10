@@ -565,7 +565,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   counts_mat <- as.matrix(counts_ref_alt[,column_order$order])
   # message(paste0("counts_mat_og: " ,nrow(counts_mat)))
   ids_comp <- counts_ref_alt$ID[complete.cases(counts_mat)]
-  # message(paste0("tot_id: ",length(ids_comp)))
+  message(paste0("tot_id: ",length(ids_comp)))
   counts_mat <- counts_mat[complete.cases(counts_mat),]
   # message(paste0("counts_mat_comp: ",nrow(counts_mat)))
   
@@ -598,7 +598,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   res.diff$Skew_logP <- -log10(as.data.frame(res.diff)$Skew_logP)
   res.diff$Skew_logPadj <- -log10(as.data.frame(res.diff)$Skew_logPadj)
   message(paste0("res_diff samples: ", nrow(res.diff)))
-  res.diff$ID <- counts_ref_alt$ID
+  res.diff$ID <- ids_comp
   
   # names(res.expr) <- paste0(names(res.expr),"_","A")
   # names(res.diff) <- paste0(names(res.diff),"_","B")
