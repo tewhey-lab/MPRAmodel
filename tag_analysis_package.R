@@ -558,7 +558,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   
   counts_ref_alt <- counts_ref_alt[,c("ID","SNP","chr","pos","ref_allele","alt_allele","allele.x","strand",column_order$order)]
   colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","strand",column_order$order)
-  # message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
+  message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
   
   out2 <- out[match(counts_ref_alt$ID, out$ID),]
   
@@ -597,7 +597,8 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   colnames(res.diff) <- c("baseMean","log2Skew","Skew_SE","skewStat","Skew_logP","Skew_logPadj")
   res.diff$Skew_logP <- -log10(as.data.frame(res.diff)$Skew_logP)
   res.diff$Skew_logPadj <- -log10(as.data.frame(res.diff)$Skew_logPadj)
-  rownames(res.diff) <- counts_ref_alt$ID
+  message(paste0("res_diff samples: ", nrow(res.diff)))
+  res.diff$ID <- counts_ref_alt$ID
   
   # names(res.expr) <- paste0(names(res.expr),"_","A")
   # names(res.diff) <- paste0(names(res.diff),"_","B")
