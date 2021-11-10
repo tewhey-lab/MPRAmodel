@@ -597,6 +597,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   colnames(res.diff) <- c("baseMean","log2Skew","Skew_SE","skewStat","Skew_logP","Skew_logPadj")
   res.diff$Skew_logP <- -log10(as.data.frame(res.diff)$Skew_logP)
   res.diff$Skew_logPadj <- -log10(as.data.frame(res.diff)$Skew_logPadj)
+  rownames(res.diff) <- counts_ref_alt$ID
   
   # names(res.expr) <- paste0(names(res.expr),"_","A")
   # names(res.diff) <- paste0(names(res.diff),"_","B")
@@ -608,7 +609,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   # message(nrow(res.expr))
   # message(nrow(counts_mat))
   # message(nrow(oligo_info))
-  res_comp <- cbind(out2, as.data.frame(res.diff))
+  res_comp <- merge(out2, res.diff, by="ID", all.y=T)
   
   return(res_comp)
 }
