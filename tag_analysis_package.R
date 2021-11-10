@@ -593,9 +593,10 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   # cf <- 1/(min(dna_reps,rna_reps))
   # res.expr <- results(dds, contrast=c(0,0,rep(c(-cf,cf),min(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list("materialRNA.allelealt", "materialDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
-  colnames(as.data.frame(res.diff)) <- c("baseMean","log2Skew","Skew_SE","skewStat","Skew_logP","Skew_logPadj")
-  as.data.frame(res.diff)$Skew_logP <- -log10(as.data.frame(res.diff)$Skew_logP)
-  as.data.frame(res.diff)$Skew_logPadj <- -log10(as.data.frame(res.diff)$Skew_logPadj)
+  res.diff <- as.data.frame(res.diff)
+  colnames(res.diff) <- c("baseMean","log2Skew","Skew_SE","skewStat","Skew_logP","Skew_logPadj")
+  res.diff$Skew_logP <- -log10(as.data.frame(res.diff)$Skew_logP)
+  res.diff$Skew_logPadj <- -log10(as.data.frame(res.diff)$Skew_logPadj)
   
   # names(res.expr) <- paste0(names(res.expr),"_","A")
   # names(res.diff) <- paste0(names(res.diff),"_","B")
