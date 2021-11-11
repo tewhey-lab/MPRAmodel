@@ -574,7 +574,8 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   
   # Run DESeq analysis
   dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
-  dds$sample.n <- factor(rep(LETTERS[1:max(dna_reps,rna_reps)], each=total_cond, total_cond))
+  sample_lets <- c(rep(LETTERS[1:dna_reps], each=total_cond), rep(LETTERS[1:rna_reps], each=total_cond))
+  dds$sample.n <- as.factor(sample_lets)
   design(dds) <- ~material + material:sample.n + material:allele
   sizeFactors(dds) <- rep(1, (dna_reps+rna_reps)*total_cond)
   if(dna_reps != rna_reps){
