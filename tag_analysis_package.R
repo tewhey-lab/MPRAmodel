@@ -133,7 +133,7 @@ processAnalysis <- function(countsData, conditionData, exclList=c()){
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 ## Returns: dds_results (normalized)
-tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss', negCtrlName="negCtrl", upDisp=T, prior=F){
+tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss', negCtrlName="negCtrl", upDisp=T, prior=T){
   process <- processAnalysis(countsData, conditionData, exclList)
   dds_results <- process[[2]]
   dds <- process[[1]]
@@ -221,7 +221,7 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
 # dds_rna         : List of cell type specific dds results
 # cond_data       : Standardized condition data
 ## Returns: dds_results (normalized and celltype specific)
-tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=F){
+tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=T){
   for(celltype in levels(cond_data$condition)){
     if(celltype == "DNA" | celltype %in% exclList) next
     message(celltype)
@@ -241,7 +241,7 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=F){
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
 ## Returns: writes duplicate output and ttest files for each celltype
-dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=F){
+dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=T){
   countsData <- countsData[,c("Barcode","Oligo",rownames(conditionData))]
   count_data <- oligoIsolate(countsData, file_prefix)
   message("Oligos isolated")
@@ -757,7 +757,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=F, correction="BH", cutoff=0.01, upDisp=T, prior=F, ...){
+tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=F, correction="BH", cutoff=0.01, upDisp=T, prior=T, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
