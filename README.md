@@ -1,12 +1,12 @@
 # MPRA count analysis pipeline
 
-tag_analysis_package.R:
+MPRAmodel.R:
       A series of functions to assist in analysis of MPRA count tables
 
 There are 3 files that this pipeline needs for input. <br>
-   * Counts Table: Table of counts with header. Should be either the output of the [ReplicateCount](https://github.com/tewhey-lab/tag_analysis_WDL) pipeline, or in the same format. <br>
+   * Counts Table: Table of counts with header. Should be either the output of the [MPRAcount](https://github.com/tewhey-lab/tag_analysis_WDL) pipeline, or in the same format. <br>
    * Attributes Table: Attributes for each oligo including oligo name, SNP, chromosome, position, reference allele, alt allele, Allele (ref/alt), window, strand, project, haplotype. For Oligos named in the form chr:pos:ref:alt:allele:window(:haplotype) the scripts [here](https://github.com/tewhey-lab/tag_analysis_WDL/blob/master/scripts/make_infile.py) and [here](https://github.com/tewhey-lab/tag_analysis_WDL/blob/master/scripts/make_attributes_oligo.pl) can be used to generate the attributes table. <br>
-   * Condition Table: 2 columns w/no header column 1 is replicates as found in the count table, column 2 indicates cell type. This can be done in the program of your choice.
+   * Condition Table: 2 columns w/no header column 1 is replicates as found in the count table, column 2 indicates cell type. This can be done in the program of your choice. or taken from the output of [MPRAcount](https://github.com/tewhey-lab/tag_analysis_WDL).
 
 Description of Functions:
    * `addHaplo` - Make sure haplotype column is in the attribute data, and check/resolve samples from multiple projects
@@ -35,13 +35,13 @@ Description of Functions:
        * INPUTS:  standardized condition table, normalized count data, strings of sample names, maximum x and y values to include in plots
        * OUTPUTS: Scatter plots comparing two samples of either the same or different cell types.
    * `plot_logFC` - Produces plots showing expression fold change vs. normalized tag counts. Called by `tagWrapper`
-   * `tagWrapper` - Function runs the whole analysis
+   * `MPRAmodel` - Function runs the whole analysis
        * INPUTS:  Counts Table, Attributes Table, Condition Table, file prefix, overall project name, negative control name, positive control name, normalization method, plot save (logical), altRef (logical), tTest (logical - perform celltype specific Ttest), DEase (logical - perform Differential Expression Allelic Skew)
        * OUTPUTS: plots normalization curves, writes standard results file and bed file for each cell type as well as optional files: cell type specific t-test results and Differential Expression Allelic Skew results. If plot save is TRUE the correlation tables, scatter plots and log fold change plots are saved.
        * USE: 
             ```
-            tag_out <- tagWrapper(countsTable, attributesData, conditionData, filePrefix="<desired file prefix>", exclList=c(<oligos to exclude>),
+            tag_out <- MPRAmodel(countsTable, attributesData, conditionData, filePrefix="<desired file prefix>", exclList=c(<oligos to exclude>),
                   plotSave=<logical>, altRef=<logical, how to order for tTest>, method="<desired normalization method default "ss">", 
                   negCtrlName="<negative control project name from attributesData>", posCtrlName="<positive control project name from attributesData>",
-                  projectName="<Overall project, default "UKBB">", tTest=<logical, perform Ttest>, DEase=<logical, perform DE Allelic Skew analysis>)
+                  projectName="<Overall project, default "MPRA_PROJ">", tTest=<logical, perform Ttest>, DEase=<logical, perform DE Allelic Skew analysis>)
             ```      
