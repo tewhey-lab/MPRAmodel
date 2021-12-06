@@ -5,11 +5,12 @@
 # if (!requireNamespace("BiocManager", quietly = TRUE)){
 #   install.packages("BiocManager")}
 # BiocManager::install("DESeq2")
+# install.packages("reshape2")
 library(DESeq2)
 library(ggplot2)
 library(reshape2)
 
-###Generate information needed for file outputs later on
+### Generate the date in YYYYMMDD format for separation of runs in the project
 fileDate <- function(){
   a <- Sys.Date()
   year <- format(a, "%Y")
@@ -20,8 +21,12 @@ fileDate <- function(){
 }
 
 ### Add Haplotype column to attribute data and resolve Oligos with multiple projects
+### If oligos with multiple projects are listed separately, they will be collapsed into a single row
+### If oligos are identical but the SNP is different for them, an error will be thrown
+## INPUTS:
 # attributesData  : table of full attributes, columns should include: ID, SNP, Project, Window, Strand, Allele,
   # Haplotype, Bash
+# negCtrlName     : String which represents negative controls in your attributes table
 ## Returns: attributes table with ctrl_exp column which resolves oligos which serve as negative and positive controls
 addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ"){
   if("Haplotype" %in% colnames(attributesData)){
@@ -73,8 +78,10 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
 }
 
 ### Remove Error, CIGAR, MD and position columns if necessary; aggregrate cound data with relation to the oligo
-# countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
-## Returns: oligo count data with the oligo as row names and the aggregate count data
+## INPUT:
+  # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
+## OUTPUT: 
+  # oligo count data with the oligo as row names and the aggregate count data
 oligoIsolate <- function(countsData, file_prefix){
   if("Error" %in% colnames(countsData)){
     countsData <- countsData[,c(1,2,7:dim(countsData)[2])]
@@ -87,10 +94,12 @@ oligoIsolate <- function(countsData, file_prefix){
 }
 
 ### Standardize condition data
+## INPUTS:
 # conditionData  : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
-# data should initially be read in such that samples are row names
-## Returns: standardized condition data, factorizing the cell types and categorizing DNA as 1 and RNA as 0
+# data should initially be read in such that samples are row names, if reading in the condition table produced by MPRAcount
+  # simply set row.names=1 when reading in the file.
+## OUTPUT: standardized condition data, factorizing the cell types and categorizing DNA as 1 and RNA as 0
 conditionStandard <- function(conditionData){
   cond_data <- as.data.frame(conditionData)
   colnames(cond_data)[1] <- "condition"
@@ -106,10 +115,12 @@ conditionStandard <- function(conditionData){
 }
 
 ### Initial processing of files via DESeq analysis
+## INPUT: 
 # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
-## Returns: dds_results (initial)
+# exclList        : list of celltypes that should be excluded from the analysis. Empty by default
+## OUTPUT: dds_results (initial)
 processAnalysis <- function(countsData, conditionData, exclList=c()){
   # bring in count data and condition data from previously defined functions
   count_data <- countsData #oligoIsolate(countsData)
@@ -127,12 +138,19 @@ processAnalysis <- function(countsData, conditionData, exclList=c()){
 }
 
 ### Normalize DESeq results and plot normalized densities for each cell type
+## INPUT:
 # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
 # attributesData  : table of full attributes, columns should include: ID, SNP, Project, Window, Strand, Allele,
   # Haplotype, Bash
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
-## Returns: dds_results (normalized)
+# exclList        : list of celltypes that should be excluded from the anlalysis. Empty by default
+# method          : normalization method. Default to 'ss'
+  # 'ss' : Summit Shift - shifts the l2fc density peak to line up with 0
+  # 'ssn': Summit Shift (Negative Controls Only) - shifts the peak of negative controls to 0
+  # 'ro' : Remove outliers - remove oligos that don't have a p-value or have a p-value > 0.001
+  # 'nc' : Negative Controls - normalize only the negative controls
+## OUTPUT: dds_results (normalized), plots normalization curves
 tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss', negCtrlName="negCtrl", upDisp=T, prior=T){
   process <- processAnalysis(countsData, conditionData, exclList)
   dds_results <- process[[2]]
@@ -217,10 +235,13 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
 }
 
 ### Replace dispersions of normalized dds with celltype specific dispersions
+## INPUT:
 # dds_results     : Normalized dds_results
 # dds_rna         : List of cell type specific dds results
 # cond_data       : Standardized condition data
-## Returns: dds_results (normalized and celltype specific)
+# exclList        : list of celltypes that should be excluded from the analysis. Empty by default
+# prior           : LOGICAL default T. Use betaPrior=T when running the nbinomWaldTest from DESeq2. Applies shrinkage to outlers
+## OUTPUT: dds_results (normalized and celltype specific)
 tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=T){
   for(celltype in levels(cond_data$condition)){
     if(celltype == "DNA" | celltype %in% exclList) next
@@ -235,13 +256,26 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=T){
 
 ### Retrieve output data for future functions - if only looking for results and not the plots this is the only function that needs to be called
   # Any subsequent functions should only need an output from here
+## INPUT
 # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
 # attributesData  : table of full attributes, columns should include: ID, SNP, Project, Window, Strand, Allele,
   # Haplotype, Bash. **NB** If you are just running this function make sure to pass your attributes table through the addHaplo function
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
-## Returns: writes duplicate output and ttest files for each celltype
-dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=T){
+# exclList        : list of celltypes that should be excluded from the analysis. Empty by default
+# altRef          : LOGICAL default T, indicating the order to sort alleles for allelic skew. alt/ref default
+# file_prefix     : String to indicate what written file names include
+# method          : Method to use for normalization
+# negCtrlName     : String indicating what negative controls are called in the attributes table
+# tTest           : LOGICAL default T, identify emVARs using the tTest method
+# DEase           : LOGICAL default T, identify emVARS using the DESeq method of determining allelic skew
+# correction      : String indicating whether to use Benjamini Hochburg ("BH", default) or Bonferroni ("BF") for p-value correction
+# cutoff          : signifigance cutoff for including alleles for skew calculation (tTest only)
+# upDisp          : LOGICAL default T, update dispersions with celltype specific calculations
+# prior           : LOGICAL default T, use betaPrior=T when calculating the celltype specific dispersions.
+## OUTPUT: writes duplicate output and ttest files for each celltype
+dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",
+                    tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=T){
   countsData <- countsData[,c("Barcode","Oligo",rownames(conditionData))]
   count_data <- oligoIsolate(countsData, file_prefix)
   message("Oligos isolated")
@@ -280,9 +314,10 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     
     message("Control and Experiment Columns Set")
 
+    DNA_mean <- rowMeans(count_data[, colnames(count_data) %in% ctrl_cols], na.rm=T)
     ctrl_mean <- rowMeans(counts_norm[, colnames(counts_norm) %in% ctrl_cols], na.rm = T)
     exp_mean <- rowMeans(counts_norm[, colnames(counts_norm) %in% exp_cols], na.rm = T)
-    output_2 <- cbind(ctrl_mean,exp_mean,outputA[,-1])
+    output_2 <- cbind(DNA_mean,ctrl_mean,exp_mean,outputA[,-1])
 
     message("Removing Duplicates")
     dups_output<-expandDups(output_2)
@@ -302,7 +337,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     
     if(DEase==T){
       message("Writing DESeq Allelic Skew Results File")
-      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output)
+      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output,prior)
       write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DE_ase_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     }
     
@@ -445,9 +480,12 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   counts1[counts1 == 0] <- 1
 
   # t test
-  ratios_A <- log((counts1[evens, exp_cols]) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols]))
-  ratios_B <- log((counts1[odds, exp_cols]) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols]))
+  ratios_A <- log2((counts1[evens, exp_cols]) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols]))
+  ratios_B <- log2((counts1[odds, exp_cols]) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols]))
 
+  mean_ratios_A <- log2(rowMeans(counts1[evens,exp_cols]) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols]))
+  mean_ratios_B <- log2(rowMeans(counts1[odds,exp_cols]) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols]))
+  
   ratios_list <- list(ratios_A, ratios_B)
 
   t_pvalue <- sapply(1:nrow(ratios_A), function(i) if(i %in% ignore_idx){NA} else{
@@ -455,7 +493,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   t_stat <- sapply(1:nrow(ratios_A), function(i) if(i %in% ignore_idx){NA} else{
         t.test(as.numeric(ratios_A[i,]), as.numeric(ratios_B[i,]), var.equal=F, paired=T)$statistic})
 
-  out2$LogSkew <- out2$B_log2FC - out2$A_log2FC
+  out2$Log2Skew <- mean_ratios_B - mean_ratios_A
   out2$LogSkew_SE <- sqrt(out2$A_log2FC_SE^2+out2$B_log2FC_SE^2)
   out2$Skew_logP <- ifelse(is.na(t_pvalue), 0, -log10(t_pvalue))
 
@@ -475,7 +513,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
 
 ### Function to perform DESeq version of Allelic Skew
 
-DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_output){
+DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_output,prior){
   
   ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),,drop=F],)
   # message(class(ds_cond_data))
@@ -560,7 +598,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand",column_order$order)
   message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
   
-  out2 <- out[match(counts_ref_alt$ID, out$ID),]
+  #out2 <- out[match(counts_ref_alt$ID, out$ID),]
   
   counts_mat <- as.matrix(counts_ref_alt[,column_order$order])
   # message(paste0("counts_mat_og: " ,nrow(counts_mat)))
@@ -582,10 +620,10 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
     mm <- model.matrix(~material + material:sample.n + material:allele, colData(dds))
     col_mm <- ncol(mm)
     mm <- mm[,c(1:((min(dna_reps,rna_reps))*2),(col_mm-1),col_mm)]
-    dds <- DESeq(dds, full = mm, betaPrior = F, fitType = "local", minReplicatesForReplace=Inf)
+    dds <- DESeq(dds, full = mm, betaPrior = prior, fitType = "local", minReplicatesForReplace=Inf)
   }
   else{
-    dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
+    dds <- DESeq(dds, betaPrior = prior, fitType = "local", minReplicatesForReplace = Inf)
   }
   
   # Get the skew results
@@ -595,9 +633,10 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   # res.expr <- results(dds, contrast=c(0,0,rep(c(-cf,cf),min(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
   res.diff <- results(dds, contrast=list("materialRNA.allelealt", "materialDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   res.diff <- as.data.frame(res.diff)[,-1]
-  colnames(res.diff) <- c("log2Skew","Skew_SE","skewStat","Skew_logP","Skew_logPadj")
+  colnames(res.diff) <- c("Log2Skew","Skew_SE","skewStat","Skew_logP","Skew_logFDR")
+  qvals <- qvalue(res.diff$Skew_logP)
   res.diff$Skew_logP <- -log10(as.data.frame(res.diff)$Skew_logP)
-  res.diff$Skew_logPadj <- -log10(as.data.frame(res.diff)$Skew_logPadj)
+  res.diff$Skew_logFDR <- -log10(as.data.frame(res.diff)$Skew_logFDR)
   message(paste0("res_diff samples: ", nrow(res.diff)))
   res.diff$ID <- ids_comp
   
@@ -611,7 +650,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   # message(nrow(res.expr))
   # message(nrow(counts_mat))
   # message(nrow(oligo_info))
-  res_comp <- merge(out2, res.diff, by="ID", all.y=T)
+  res_comp <- merge(out, res.diff, by="ID", all.y=T)
   
   return(res_comp)
 }
@@ -757,7 +796,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-tagWrapper <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=F, correction="BH", cutoff=0.01, upDisp=T, prior=T, ...){
+MPRAmodel <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=F, correction="BH", cutoff=0.01, upDisp=T, prior=T, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
