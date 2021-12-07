@@ -269,8 +269,8 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=T){
 # negCtrlName     : String indicating what negative controls are called in the attributes table
 # tTest           : LOGICAL default T, identify emVARs using the tTest method
 # DEase           : LOGICAL default T, identify emVARS using the DESeq method of determining allelic skew
-# correction      : String indicating whether to use Benjamini Hochburg ("BH", default) or Bonferroni ("BF") for p-value correction
-# cutoff          : signifigance cutoff for including alleles for skew calculation (tTest only)
+# correction      : String indicating whether to use Benjamini Hochberg ("BH", default) or Bonferroni ("BF") for p-value correction
+# cutoff          : significance cutoff for including alleles for skew calculation (tTest only)
 # upDisp          : LOGICAL default T, update dispersions with celltype specific calculations
 # prior           : LOGICAL default T, use betaPrior=T when calculating the celltype specific dispersions.
 ## OUTPUT: writes duplicate output and ttest files for each celltype
@@ -796,7 +796,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-MPRAmodel <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=F, correction="BH", cutoff=0.01, upDisp=T, prior=T, ...){
+MPRAmodel <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=T, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
