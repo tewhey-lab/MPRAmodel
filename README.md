@@ -34,7 +34,7 @@ MPRAmodel.R:
   * `correction` : STRING; Default "BH", indicator of whether to use Benjamini Hochberg ("BH") or Bonferroni ("BF") for p-value correction
   * `cutoff` : INT; Default 0.01, significance cutoff for including alleles for skew calculation (tTest only)
   * `upDisp` : LOGICAL; Default `TRUE`, update dispersions with cell type specific calculations
-  * `prior` : LOGICAL; Default `TRUE`, use `betaPrior=T` when calculating the cell type specific dispersions
+  * `prior` : LOGICAL; Default `FALSE`, use `betaPrior=F` when calculating the cell type specific dispersions
 
 
 ## Functions (in alphabetical order) <br>
