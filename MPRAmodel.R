@@ -620,10 +620,10 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
     mm <- model.matrix(~material + material:sample.n + material:allele, colData(dds))
     col_mm <- ncol(mm)
     mm <- mm[,c(1:((min(dna_reps,rna_reps))*2),(col_mm-1),col_mm)]
-    dds <- DESeq(dds, full = mm, betaPrior = prior, fitType = "local", minReplicatesForReplace=Inf)
+    dds <- DESeq(dds, full = mm, fitType = "local", minReplicatesForReplace=Inf)
   }
   else{
-    dds <- DESeq(dds, betaPrior = prior, fitType = "local", minReplicatesForReplace = Inf)
+    dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
   }
   
   # Get the skew results
