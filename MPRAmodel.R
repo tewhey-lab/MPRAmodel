@@ -515,7 +515,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
 
 DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_output,prior){
   
-  ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),,drop=F],)
+  ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),,drop=F])
   # message(class(ds_cond_data))
   
   # Prepare the sample table
@@ -634,7 +634,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   res.diff <- results(dds, contrast=list("materialRNA.allelealt", "materialDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
   res.diff <- as.data.frame(res.diff)[,-1]
   colnames(res.diff) <- c("Log2Skew","Skew_SE","skewStat","Skew_logP","Skew_logFDR")
-  qvals <- qvalue(res.diff$Skew_logP)
+  # qvals <- qvalue(res.diff$Skew_logP)
   res.diff$Skew_logP <- -log10(as.data.frame(res.diff)$Skew_logP)
   res.diff$Skew_logFDR <- -log10(as.data.frame(res.diff)$Skew_logFDR)
   message(paste0("res_diff samples: ", nrow(res.diff)))
