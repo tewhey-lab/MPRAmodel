@@ -171,7 +171,7 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
     # Summit shift normalization
     if(method == "ss"){
       summit <- which.max(density(temp_outputA$log2FoldChange, na.rm=T)$y)
-      log_offset <- 2^(density(temp_outputA$log2FoldChange)$x[summit])
+      log_offset <- 2^(density(temp_outputA$log2FoldChange, na.rm=T)$x[summit])
       sizeFactors(dds_results)[which(cond_data$condition == celltype)] <- sizeFactors(dds_results)[which(cond_data$condition == celltype)]*(log_offset)
     }
     # Summit shift normalization - negative controls only
