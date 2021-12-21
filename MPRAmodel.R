@@ -483,8 +483,8 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   ratios_A <- log2((counts1[evens, exp_cols]) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols]))
   ratios_B <- log2((counts1[odds, exp_cols]) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols]))
 
-  mean_ratios_A <- log2(rowMeans(counts1[evens,exp_cols]) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols]))
-  mean_ratios_B <- log2(rowMeans(counts1[odds,exp_cols]) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols]))
+  mean_ratios_A <- log2(rowMeans(counts1[evens,exp_cols], na.rm = T) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols], na.rm = T))
+  mean_ratios_B <- log2(rowMeans(counts1[odds,exp_cols], na.rm = T) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols], na.rm = T))
   
   ratios_list <- list(ratios_A, ratios_B)
 
