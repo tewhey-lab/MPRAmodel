@@ -318,6 +318,8 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     ctrl_mean <- rowMeans(counts_norm[, colnames(counts_norm) %in% ctrl_cols], na.rm = T)
     exp_mean <- rowMeans(counts_norm[, colnames(counts_norm) %in% exp_cols], na.rm = T)
     output_2 <- cbind(DNA_mean,ctrl_mean,exp_mean,outputA[,-1])
+    
+    counts_norm_sp <- expandDups(counts_norm)
 
     message("Removing Duplicates")
     dups_output<-expandDups(output_2)
@@ -330,7 +332,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
 
     if(tTest==T){
       message("Writing T-Test Results File")
-      outA<-cellSpecificTtest(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef, correction, cutoff)
+      outA<-cellSpecificTtest(attributesData, counts_norm_sp, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef, correction, cutoff)
       full_output_var[[celltype]]<-outA
       write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     }
