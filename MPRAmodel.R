@@ -332,7 +332,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
 
     if(tTest==T){
       message("Writing T-Test Results File")
-      outA<-cellSpecificTtest(attributesData, counts_norm_sp, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef, correction, cutoff)
+      outA<-cellSpecificTtest(attributesData, counts_norm_sp, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef, correction, cutoff, prior)
       full_output_var[[celltype]]<-outA
       write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     }
@@ -414,7 +414,7 @@ expandDups <- function(output){
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # correction      : String indicating what correction method to use for significance cutoff, "BH" for Benjamini Hochburg and "BF" for Bonferroni
 # cutoff          : Integer for significance cutoff to use. 
-cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef = T, correction="BH", cutoff=0.01){
+cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef = T, correction="BH", cutoff=0.01, prior=F){
   snp_data <- subset(attributesData,allele=="ref" | allele=="alt")
   snp_data$comb <- paste(snp_data$SNP,"_",snp_data$window,"_",snp_data$strand,"_",snp_data$haplotype,sep="")
   tmp_ct <- as.data.frame(table(snp_data$comb))
@@ -485,17 +485,23 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   ratios_A <- log2((counts1[evens, exp_cols]) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols]))
   ratios_B <- log2((counts1[odds, exp_cols]) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols]))
 
-  mean_ratios_A <- log2(rowMeans(counts1[evens,exp_cols], na.rm = T) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols], na.rm = T))
-  mean_ratios_B <- log2(rowMeans(counts1[odds,exp_cols], na.rm = T) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols], na.rm = T))
-  
   ratios_list <- list(ratios_A, ratios_B)
 
   t_pvalue <- sapply(1:nrow(ratios_A), function(i) if(i %in% ignore_idx){NA} else{
         t.test(as.numeric(ratios_A[i,]), as.numeric(ratios_B[i,]), var.equal=F, paired=T)$p.value})
   t_stat <- sapply(1:nrow(ratios_A), function(i) if(i %in% ignore_idx){NA} else{
         t.test(as.numeric(ratios_A[i,]), as.numeric(ratios_B[i,]), var.equal=F, paired=T)$statistic})
-
-  out2$Log2Skew <- mean_ratios_B - mean_ratios_A
+  
+  if(prior==T){
+    mean_ratios_A <- log2(rowMeans(counts1[evens,exp_cols], na.rm = T) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols], na.rm = T))
+    mean_ratios_B <- log2(rowMeans(counts1[odds,exp_cols], na.rm = T) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols], na.rm = T))
+    
+    out2$Log2Skew <- mean_ratios_B - mean_ratios_A
+  }
+  
+  if(prior==F){
+    out2$Log2Skew <- out2$B_log2FC - out2$A_log2FC
+  }
   out2$LogSkew_SE <- sqrt(out2$A_log2FC_SE^2+out2$B_log2FC_SE^2)
   out2$Skew_logP <- ifelse(is.na(t_pvalue), 0, -log10(t_pvalue))
 
