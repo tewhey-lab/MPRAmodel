@@ -77,6 +77,21 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
   return(attributesData)
 }
 
+
+### Write out Barcode level count data for plasmid and each celltype with celltype label
+## INPUTS:
+# countsData
+# conditionData
+bcRawOut <- function(countsData, conditionData, file_prefix){
+  conditionData <- conditionStandard(conditionData)
+  for(celltype in levels(conditionData$condition)){
+    if(celltype=="DNA") next
+    reps <- rownames(conditionData)[which(conditionData$condition=="DNA" | conditionData$condition==celltype)]
+    count_temp <- countsData[,c("Barcode","Oligo",reps)]
+    write.table(count_temp, paste0("results/", file_prefix,"_",celltype,".counts"), quote=F, sep = "\t")
+  }
+}
+
 ### Remove Error, CIGAR, MD and position columns if necessary; aggregrate cound data with relation to the oligo
 ## INPUT:
   # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
@@ -804,7 +819,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-MPRAmodel <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=F, ...){
+MPRAmodel <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=F, raw=T, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
@@ -813,6 +828,9 @@ MPRAmodel <- function(countsData, attributesData, conditionData, exclList=c(), f
   # Resolve any multi-project conflicts, run normalization, and write celltype specific results files
   attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
   message("running DESeq")
+  if(raw==T){
+    bcRawOut(countsData, conditionData, file_prefix)
+  }
   analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName, tTest, DEase, correction, cutoff, upDisp, prior)
   cond_data <- conditionStandard(conditionData)
   n <- length(levels(cond_data$condition))
