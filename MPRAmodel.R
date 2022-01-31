@@ -546,7 +546,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   tmp_ct <- as.data.frame(table(snp_data$comb))
   
   snp_data_pairs <- snp_data[snp_data$comb %in% tmp_ct[tmp_ct$Freq==2,]$Var1,]
-  snp_data_pairs <- merge(snp_data_pairs,dups_output, by.x="ID", by.y="row.names", all.x=T, no.dups=F)
+  snp_data_pairs <- merge(snp_data_pairs,as.data.frame(dups_output), by.x="ID", by.y="row.names", all.x=T, no.dups=F)
   
   out <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),c(1:9)]
   out$A_Ctrl_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"ctrl_mean"]
