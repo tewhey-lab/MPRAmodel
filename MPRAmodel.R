@@ -50,6 +50,9 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
   if("snp_pos" %in% colnames(attributesData)){
     names(attributesData)[names(attributesData) == "snp_pos"] <- "pos"
   }
+  if(!("pos" %in% colnames(attributesData))){
+    attributesData$pos <- "NA"
+  }
   #Check for duplicate IDs, and combine projects if they exist
   
   id_freq <- as.data.frame(table(attributesData$ID))
