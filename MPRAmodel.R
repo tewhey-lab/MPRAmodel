@@ -41,6 +41,12 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
   if(!("haplotype" %in% colnames(attributesData))){
     attributesData$haplotype <- "NA"
   }
+  if(!("ref_allele" %in% colnames(attributesData))){
+    attributesData$ref_allele <- "NA"
+  }
+  if(!("alt_allele" %in% colnames(attributesData))){
+    attributesData$alt_allele <- "NA"
+  }
   if("snp_pos" %in% colnames(attributesData)){
     names(attributesData)[names(attributesData) == "snp_pos"] <- "pos"
   }
