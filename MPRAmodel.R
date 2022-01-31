@@ -78,20 +78,6 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
 }
 
 
-### Write out Barcode level count data for plasmid and each celltype with celltype label
-## INPUTS:
-# countsData
-# conditionData
-bcRawOut <- function(countsData, conditionData, file_prefix){
-  conditionData <- conditionStandard(conditionData)
-  for(celltype in levels(conditionData$condition)){
-    if(celltype=="DNA") next
-    reps <- rownames(conditionData)[which(conditionData$condition=="DNA" | conditionData$condition==celltype)]
-    count_temp <- countsData[,c("Barcode","Oligo",reps)]
-    write.table(count_temp, paste0("results/", file_prefix,"_",celltype,".counts"), quote=F, sep = "\t")
-  }
-}
-
 ### Remove Error, CIGAR, MD and position columns if necessary; aggregrate cound data with relation to the oligo
 ## INPUT:
   # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
@@ -228,7 +214,8 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
   # Plot normalized density for each cell type -
   for (celltype in levels(cond_data$condition)) {
     if(celltype == "DNA" | celltype %in% exclList) next
-
+    
+    message(celltype)
     temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
 
     outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
@@ -828,9 +815,6 @@ MPRAmodel <- function(countsData, attributesData, conditionData, exclList=c(), f
   # Resolve any multi-project conflicts, run normalization, and write celltype specific results files
   attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
   message("running DESeq")
-  if(raw==T){
-    bcRawOut(countsData, conditionData, file_prefix)
-  }
   analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName, tTest, DEase, correction, cutoff, upDisp, prior)
   cond_data <- conditionStandard(conditionData)
   n <- length(levels(cond_data$condition))
