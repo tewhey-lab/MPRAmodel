@@ -231,10 +231,10 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
 
     message("Plotting Normalization Curves")
     pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
-    plot(density(temp_outputB[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
+    plot(density(temp_outputB[attribute_ids,"log2FoldChange"],na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
     lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
     lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
-    lines(density(outputA[attribute_ids,]$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="salmon")
+    lines(density(outputA[attribute_ids,"log2FoldChange"],na.rm=TRUE),xlim=c(-3,3),col="salmon")
     text(1.5,0.4,adj=c(0,0),labels="All - baseline",col="black")
     text(1.5,0.35,adj=c(0,0),labels="All - corrected",col="red")
     text(1.5,0.3,adj=c(0,0),labels=paste0(negCtrlName," - baseline"),col="grey")
