@@ -54,7 +54,7 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
     attributesData$pos <- "NA"
   }
   #Check for duplicate IDs, and combine projects if they exist
-  
+
   id_freq <- as.data.frame(table(attributesData$ID))
   dup_ids <- id_freq[which(id_freq$Freq > 1),]
   if(nrow(dup_ids) > 0){
@@ -63,7 +63,7 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
       proj_new <- paste0(tmp$proj,collapse=",")
       attributesData$project[which(attributesData$ID==id)] <- proj_new
     }
-    
+
     attributesData <- unique(attributesData)
     id_freq <- as.data.frame(table(attributesData$ID))
     dup_ids <- id_freq[which(id_freq$Freq > 1),]
@@ -71,8 +71,8 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
       stop("Duplicate IDs found in Attributes file. Please check for mismatching information.")
     }
   }
-  
-  
+
+
   multi_project_check <- colsplit(attributesData$project, ",", names = c("proj1","proj2"))
   if(any(is.na(multi_project_check$proj2))){
     attributesData$ctrl_exp <- attributesData$project
@@ -90,7 +90,7 @@ addHaplo <- function(attributesData,negCtrlName="negCtrl", posCtrlName="expCtrl"
 ### Remove Error, CIGAR, MD and position columns if necessary; aggregrate cound data with relation to the oligo
 ## INPUT:
   # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
-## OUTPUT: 
+## OUTPUT:
   # oligo count data with the oligo as row names and the aggregate count data
 oligoIsolate <- function(countsData, file_prefix){
   if("Error" %in% colnames(countsData)){
@@ -125,7 +125,7 @@ conditionStandard <- function(conditionData){
 }
 
 ### Initial processing of files via DESeq analysis
-## INPUT: 
+## INPUT:
 # countsData      : table of tag counts, columns should include: Barcode, Oligo, Sample names
 # conditionData   : table of conditions, 2 columns no header align to the variable column headers of countsData
   # and celltype
@@ -219,11 +219,11 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
   if(upDisp==T){
     dds_results <- tagSig(dds_results, dds_rna, cond_data, exclList, prior)
   }
-  
+
   # Plot normalized density for each cell type -
   for (celltype in levels(cond_data$condition)) {
     if(celltype == "DNA" | celltype %in% exclList) next
-    
+
     message(celltype)
     temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
 
@@ -296,17 +296,17 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
   message("condition data standardized")
   colnames(count_data) <- row.names(cond_data)
   counts_norm <- counts(dds_results, normalized = T)
-  
+
   write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(), "_normalized_counts.out"), quote = F, sep = "\t")
-  
+
   if(DEase==T){
     message("Removing count duplicates")
     counts_DE <- counts(dds_results, normalized=F)
     counts_norm_DE <- expandDups(counts_DE)
   }
-  
+
   # return(counts_norm_DE)
-  
+
   full_output<-list()
   full_output_var<-list()
 
@@ -322,14 +322,14 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
 
     ctrl_cols <- row.names(condition_table[condition_table$condition=="DNA",])
     exp_cols <- row.names(condition_table[condition_table$condition==celltype,])
-    
+
     message("Control and Experiment Columns Set")
 
     DNA_mean <- rowMeans(count_data[, colnames(count_data) %in% ctrl_cols], na.rm=T)
     ctrl_mean <- rowMeans(counts_norm[, colnames(counts_norm) %in% ctrl_cols], na.rm = T)
     exp_mean <- rowMeans(counts_norm[, colnames(counts_norm) %in% exp_cols], na.rm = T)
     output_2 <- cbind(DNA_mean,ctrl_mean,exp_mean,outputA[,-1])
-    
+
     counts_norm_sp <- expandDups(counts_norm)
 
     message("Removing Duplicates")
@@ -347,32 +347,32 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
       full_output_var[[celltype]]<-outA
       write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     }
-    
+
     if(DEase==T){
       message("Writing DESeq Allelic Skew Results File")
       outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output,prior)
       write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DE_ase_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     }
-    
+
     message("Writing bed File")
     full_bed_outputA<-merge(attributesData, as.matrix(dups_output),by.x="ID",by.y="row.names",all.x=TRUE,no.dups=FALSE)
     # message(paste0(colnames(full_bed_outputA), collapse = "\t"))
-    #printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]    
+    #printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]
     if(!(c("start","stop") %in% colnames(full_bed_outputA))){
       full_bed_outputA$start <- ""
       full_bed_outputA$stop <- ""
     }
-    printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","ctrl_mean","exp_mean","pvalue","padj","lfcSE","project")]        
+    printbed<-full_bed_outputA[,c("chr","start","stop","ID","strand","log2FoldChange","ctrl_mean","exp_mean","pvalue","padj","lfcSE","project")]
     printbed$score<-"."
-    #printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]      
+    #printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","Ctrl.Mean","Exp.Mean","pvalue","padj","lfcSE","cigar","md-tag","project")]
     #colnames(printbed)<-c("chr","start","stop","id","score","strand","log2fc","input-count","output-count","log10pval","log10fdr","lfc-se","cigar","md-tag","project")
-    printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","ctrl_mean","exp_mean","pvalue","padj","lfcSE","project")]      
+    printbed<-printbed[,c("chr","start","stop","ID","score","strand","log2FoldChange","ctrl_mean","exp_mean","pvalue","padj","lfcSE","project")]
     colnames(printbed)<-c("chr","start","stop","id","score","strand","log2fc","input-count","output-count","log10pval","log10fdr","lfc-se","project")
     printbed$strand[printbed$strand=="fwd"]="+"
     printbed$strand[printbed$strand=="rev"]="-"
     printbed$log10pval=-log10(printbed$log10pval)
     printbed$log10fdr=-log10(printbed$log10fdr)
-    
+
     write.table(printbed,paste0("results/",file_prefix,"_",celltype,"_",fileDate(),".bed"),row.names=FALSE,col.names=TRUE,sep="\t",quote=FALSE)
   }
   return(c(full_output, dds_results))
@@ -424,7 +424,7 @@ expandDups <- function(output){
 # exp_cols        : passed from the dataOut function
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # correction      : String indicating what correction method to use for significance cutoff, "BH" for Benjamini Hochburg and "BF" for Bonferroni
-# cutoff          : Integer for significance cutoff to use. 
+# cutoff          : Integer for significance cutoff to use.
 cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef = T, correction="BH", cutoff=0.01, prior=F){
   snp_data <- subset(attributesData,allele=="ref" | allele=="alt")
   snp_data$comb <- paste(snp_data$SNP,"_",snp_data$window,"_",snp_data$strand,"_",snp_data$haplotype,sep="")
@@ -502,14 +502,14 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
         t.test(as.numeric(ratios_A[i,]), as.numeric(ratios_B[i,]), var.equal=F, paired=T)$p.value})
   t_stat <- sapply(1:nrow(ratios_A), function(i) if(i %in% ignore_idx){NA} else{
         t.test(as.numeric(ratios_A[i,]), as.numeric(ratios_B[i,]), var.equal=F, paired=T)$statistic})
-  
+
   if(prior==T){
     mean_ratios_A <- log2(rowMeans(counts1[evens,exp_cols], na.rm = T) / rowMeans(snp_data_ctdata_pairs[evens, ctrl_cols], na.rm = T))
     mean_ratios_B <- log2(rowMeans(counts1[odds,exp_cols], na.rm = T) / rowMeans(snp_data_ctdata_pairs[odds, ctrl_cols], na.rm = T))
-    
+
     out2$Log2Skew <- mean_ratios_B - mean_ratios_A
   }
-  
+
   if(prior==F){
     out2$Log2Skew <- out2$B_log2FC - out2$A_log2FC
   }
@@ -533,10 +533,10 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
 ### Function to perform DESeq version of Allelic Skew
 
 DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_output,prior){
-  
+
   ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),,drop=F])
   # message(class(ds_cond_data))
-  
+
   # Prepare the sample table
   message("Preparing Sample Table")
   dna_reps <- nrow(as.data.frame(ds_cond_data[which(ds_cond_data$condition=="DNA"),]))
@@ -546,17 +546,17 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   samps <- data.frame(material=factor(c(rep("DNA",dna_reps*total_cond),rep("RNA",rna_reps*total_cond))),
                       allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps))), levels = c("ref","alt")),
                       sample=factor(rep(c(rownames(ds_cond_data)[which(ds_cond_data$condition=="DNA")], rownames(ds_cond_data)[which(ds_cond_data$condition==celltype)]),each=total_cond)))
-  
-  
+
+
   # Reorganize the count data
   message("reorganizing count data")
   snp_data <- subset(attributesData,allele=="ref" | allele=="alt")
   snp_data$comb <- paste(snp_data$SNP,"_",snp_data$window,"_",snp_data$strand,"_",snp_data$haplotype,sep="")
   tmp_ct <- as.data.frame(table(snp_data$comb))
-  
+
   snp_data_pairs <- snp_data[snp_data$comb %in% tmp_ct[tmp_ct$Freq==2,]$Var1,]
   snp_data_pairs <- merge(snp_data_pairs,as.data.frame(dups_output), by.x="ID", by.y="row.names", all.x=T, no.dups=F)
-  
+
   out <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),c(1:9)]
   out$A_Ctrl_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"ctrl_mean"]
   out$A_Exp_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"exp_mean"]
@@ -584,12 +584,12 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   out$B_logPadj_BF <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"pvalue"]*(nrow(snp_data_pairs)/2))
   out$B_logPadj_BF[out$B_logPadj_BF < 0] <- 0
   out$B_logPadj_BF[out$B_logPadj_BF == Inf] <- max(out$B_logPadj_BF[is.finite(out$B_logPadj_BF)])
-  
+
   id_ref_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="ref")]
   # message(length(id_ref_all))
   id_alt_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="alt")]
   # message(length(id_alt_all))
-  
+
   counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),colnames(counts_norm) %in% rownames(ds_cond_data),drop=F]
   colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
   # message(class(rownames(counts_ref)))
@@ -597,38 +597,38 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   counts_ref <- unique(counts_ref)
   rownames(counts_ref) <- counts_ref$Row.names
   counts_ref$ID <- counts_ref$Row.names
-  
+
   counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),colnames(counts_norm) %in% rownames(ds_cond_data),drop=F]
   colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
   counts_alt <- merge(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand")], by.x="row.names",by.y="ID",all.x=T)
   counts_alt <- unique(counts_alt)
   rownames(counts_alt) <- counts_alt$Row.names
   counts_alt <- counts_alt[,-1]
-  
+
   counts_ref_alt <- merge(counts_ref, counts_alt, by=c("SNP","chr","pos","ref_allele","alt_allele","window","strand"), all=T)
-  
+
   # message(paste0(colnames(counts_ref_alt),collapse = "\t"))
-  
+
   column_order <- data.frame(allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps))), levels = c("ref","alt")),
                              sample=factor(rep(c(rownames(ds_cond_data)[which(ds_cond_data$condition=="DNA")], rownames(ds_cond_data)[which(ds_cond_data$condition==celltype)]),each=total_cond)))
   column_order$order <- paste0(column_order$sample,"_",column_order$allele)
-  
+
   counts_ref_alt <- counts_ref_alt[,c("ID","SNP","chr","pos","ref_allele","alt_allele","allele.x","window","strand",column_order$order)]
   colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand",column_order$order)
   message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
-  
+
   #out2 <- out[match(counts_ref_alt$ID, out$ID),]
-  
+
   counts_mat <- as.matrix(counts_ref_alt[,column_order$order])
   # message(paste0("counts_mat_og: " ,nrow(counts_mat)))
   ids_comp <- counts_ref_alt$ID[complete.cases(counts_mat)]
   message(paste0("tot_id: ",length(ids_comp)))
   counts_mat <- counts_mat[complete.cases(counts_mat),]
   # message(paste0("counts_mat_comp: ",nrow(counts_mat)))
-  
+
   # Set Design definition
   design <- ~sample + allele
-  
+
   # Run DESeq analysis
   dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
   sample_lets <- c(rep(LETTERS[1:dna_reps], each=total_cond), rep(LETTERS[1:rna_reps], each=total_cond))
@@ -644,7 +644,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   else{
     dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
   }
-  
+
   # Get the skew results
   # cell_res <- paste0("condition",celltype,".countalt")
   # message(paste0(resultsNames(dds), collapse = "\t"))
@@ -658,10 +658,10 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   res.diff$Skew_logFDR <- -log10(as.data.frame(res.diff)$Skew_logFDR)
   message(paste0("res_diff samples: ", nrow(res.diff)))
   res.diff$ID <- ids_comp
-  
+
   # names(res.expr) <- paste0(names(res.expr),"_","A")
   # names(res.diff) <- paste0(names(res.diff),"_","B")
-  
+
   # Add in the oligo info
   # oligo_info <- attributesData[which(attributesData$ID %in% ids_comp),c("ID", "SNP",	"chr",	"pos",	"ref_allele",	"alt_allele",	"allele",	"strand")]
   message("combining data")
@@ -670,7 +670,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   # message(nrow(counts_mat))
   # message(nrow(oligo_info))
   res_comp <- merge(out, res.diff, by="ID", all.y=T)
-  
+
   return(res_comp)
 }
 
@@ -815,7 +815,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-MPRAmodel <- function(countsData, attributesData, conditionData, exclList=c(), filePrefix, plotSave=T, altRef=T, method = 'ss', negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=F, raw=T, ...){
+MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", exclList=c(), plotSave=T, altRef=T, method = 'ss', tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=F, raw=T, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
@@ -904,6 +904,3 @@ MPRAmodel <- function(countsData, attributesData, conditionData, exclList=c(), f
   }
   return(counts_out)
 }
-
-
-
