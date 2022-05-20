@@ -161,7 +161,7 @@ processAnalysis <- function(countsData, conditionData, exclList=c()){
   # 'ro' : Remove outliers - remove oligos that don't have a p-value or have a p-value > 0.001
   # 'nc' : Negative Controls - normalize only the negative controls
 ## OUTPUT: dds_results (normalized), plots normalization curves
-tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss', negCtrlName="negCtrl", upDisp=T, prior=T){
+tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), method = 'ss', negCtrlName="negCtrl", upDisp=T, prior=F){
   process <- processAnalysis(countsData, conditionData, exclList)
   dds_results <- process[[2]]
   dds <- process[[1]]
@@ -180,6 +180,7 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
     temp_outputA <- results(dds_results, contrast = c("condition", celltype, "DNA"), cooksCutoff=F, independentFiltering=F)
     # Summit shift normalization
     if(method == "ss"){
+      message("summit shift")
       summit <- which.max(density(temp_outputA$log2FoldChange, na.rm=T)$y)
       log_offset <- 2^(density(temp_outputA$log2FoldChange, na.rm=T)$x[summit])
       sizeFactors(dds_results)[which(cond_data$condition == celltype)] <- sizeFactors(dds_results)[which(cond_data$condition == celltype)]*(log_offset)
@@ -203,46 +204,51 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
     sizeFactors(dds_results)<-sizeFactors(dds_results_tmp)
   }
 
-  dds_rna <- list()
-  # Celltype based DESeq analysis
-  for(celltype in levels(cond_data$condition)){
-    if(celltype=="DNA" | celltype %in% exclList) next
-    rna_cols <- cond_data[which(cond_data$condition==celltype),]
-    rna_count <- count_data[,rownames(rna_cols)]
-    dds_rna_temp <- DESeqDataSetFromMatrix(countData = rna_count, colData = rna_cols, design = ~1)
-    sizeFactors(dds_rna_temp) <- sizeFactors(dds_results)[rownames(rna_cols)]
-    dds_rna_temp <- estimateDispersions(dds_rna_temp)
-    dds_rna[[celltype]] <- dds_rna_temp
-  }
+  # dds_rna <- list()
+  # # Celltype based DESeq analysis
+  # for(celltype in levels(cond_data$condition)){
+  #   if(celltype=="DNA" | celltype %in% exclList) next
+  #   rna_cols <- cond_data[which(cond_data$condition==celltype),]
+  #   rna_count <- count_data[,rownames(rna_cols)]
+  #   dds_rna_temp <- DESeqDataSetFromMatrix(countData = rna_count, colData = rna_cols, design = ~1)
+  #   sizeFactors(dds_rna_temp) <- sizeFactors(dds_results)[rownames(rna_cols)]
+  #   dds_rna_temp <- estimateDispersions(dds_rna_temp)
+  #   dds_rna[[celltype]] <- dds_rna_temp
+  # }
 
-  # Replace dispersions in normalized dds with the celltype specific dispersions
-  if(upDisp==T){
-    dds_results <- tagSig(dds_results, dds_rna, cond_data, exclList, prior)
-  }
-
-  # Plot normalized density for each cell type -
-  for (celltype in levels(cond_data$condition)) {
-    if(celltype == "DNA" | celltype %in% exclList) next
-
-    message(celltype)
-    temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
-
-    outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
-
-    message("Plotting Normalization Curves")
-    pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
-    plot(density(temp_outputB[attribute_ids,"log2FoldChange"],na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
-    lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
-    lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
-    lines(density(outputA[attribute_ids,"log2FoldChange"],na.rm=TRUE),xlim=c(-3,3),col="salmon")
-    text(1.5,0.4,adj=c(0,0),labels="All - baseline",col="black")
-    text(1.5,0.35,adj=c(0,0),labels="All - corrected",col="red")
-    text(1.5,0.3,adj=c(0,0),labels=paste0(negCtrlName," - baseline"),col="grey")
-    text(1.5,0.25,adj=c(0,0),labels=paste0(negCtrlName," - corrected"),col="salmon")
-    abline(v=0)
-    dev.off()
-  }
-  return(dds_results)
+  # # Replace dispersions in normalized dds with the celltype specific dispersions
+  # if(upDisp==T){
+  #   cellsp_dds <- tagSig(dds_results, dds_rna, cond_data, exclList, prior)
+  # }
+  # 
+  # # Plot normalized density for each cell type -
+  # for (celltype in levels(cond_data$condition)) {
+  #   
+  #   if(upDisp=T){
+  #     dds_results <- cellsp_dds[[celltype]]
+  #   }
+  #   
+  #   if(celltype == "DNA" | celltype %in% exclList) next
+  # 
+  #   message(celltype)
+  #   temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
+  # 
+  #   outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
+  # 
+  #   message("Plotting Normalization Curves")
+  #   pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
+  #   plot(density(temp_outputB[attribute_ids,"log2FoldChange"],na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
+  #   lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
+  #   lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
+  #   lines(density(outputA[attribute_ids,"log2FoldChange"],na.rm=TRUE),xlim=c(-3,3),col="salmon")
+  #   text(1.5,0.4,adj=c(0,0),labels="All - baseline",col="black")
+  #   text(1.5,0.35,adj=c(0,0),labels="All - corrected",col="red")
+  #   text(1.5,0.3,adj=c(0,0),labels=paste0(negCtrlName," - baseline"),col="grey")
+  #   text(1.5,0.25,adj=c(0,0),labels=paste0(negCtrlName," - corrected"),col="salmon")
+  #   abline(v=0)
+  #   dev.off()
+  # }
+  return(list(dds_results,dds_results_orig))
 }
 
 ### Replace dispersions of normalized dds with celltype specific dispersions
@@ -253,16 +259,19 @@ tagNorm <- function(countsData, conditionData, attributesData, exclList = c(), m
 # exclList        : list of celltypes that should be excluded from the analysis. Empty by default
 # prior           : LOGICAL default T. Use betaPrior=T when running the nbinomWaldTest from DESeq2. Applies shrinkage to outlers
 ## OUTPUT: dds_results (normalized and celltype specific)
-tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=T){
+tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=F){
+  cellsp_dds <- list()
   for(celltype in levels(cond_data$condition)){
     if(celltype == "DNA" | celltype %in% exclList) next
+    message("updating dispersions for:")
     message(celltype)
     dispersions(dds_rna[[celltype]])[which(is.na(dispersions(dds_rna[[celltype]])))] <- 10 #max(dispersions(dds_results))
     mcols(dds_results)$dispersion <- dispersions(dds_rna[[celltype]])
     dds_results <- nbinomWaldTest(dds_results, betaPrior = prior)
+    cellsp_dds[[celltype]] <- dds_results
   }
   message(paste(dim(dds_results), collapse = "\t"))
-  return(dds_results)
+  return(cellsp_dds)
 }
 
 ### Retrieve output data for future functions - if only looking for results and not the plots this is the only function that needs to be called
@@ -286,38 +295,77 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=T){
 # prior           : LOGICAL default T, use betaPrior=T when calculating the celltype specific dispersions.
 ## OUTPUT: writes duplicate output and ttest files for each celltype
 dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",
-                    tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=T){
+                    tTest=T, DEase=T, correction="BH", cutoff=0.01, upDisp=T, prior=F){
   countsData <- countsData[,c("Barcode","Oligo",rownames(conditionData))]
   count_data <- oligoIsolate(countsData, file_prefix)
   message("Oligos isolated")
-  dds_results <- tagNorm(count_data, conditionData, attributesData, exclList, method, negCtrlName, upDisp, prior)
+  dds_results_all <- tagNorm(count_data, conditionData, attributesData, exclList, method, negCtrlName, upDisp, prior)
+  dds_results <- dds_results_all[[1]]
+  dds_results_orig <- dds_results_all[[2]]
+  attribute_ids <- (attributesData[attributesData$ctrl_exp==negCtrlName,])$ID
+  full_attribute_ids <- attributesData$ID
   message("Tags Normalized")
   cond_data <- conditionStandard(conditionData)
   message("condition data standardized")
   colnames(count_data) <- row.names(cond_data)
-  counts_norm <- counts(dds_results, normalized = T)
-
-  write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(), "_normalized_counts.out"), quote = F, sep = "\t")
-
-  if(DEase==T){
-    message("Removing count duplicates")
-    counts_DE <- counts(dds_results, normalized=F)
-    counts_norm_DE <- expandDups(counts_DE)
-  }
-
-  # return(counts_norm_DE)
 
   full_output<-list()
   full_output_var<-list()
 
   condition_table <- as.data.frame(cond_data)
+  
+  dds_rna <- list()
+  # Celltype based DESeq analysis
+  for(celltype in levels(cond_data$condition)){
+    if(celltype=="DNA" | celltype %in% exclList) next
+    rna_cols <- cond_data[which(cond_data$condition==celltype),]
+    rna_count <- count_data[,rownames(rna_cols)]
+    dds_rna_temp <- DESeqDataSetFromMatrix(countData = rna_count, colData = rna_cols, design = ~1)
+    sizeFactors(dds_rna_temp) <- sizeFactors(dds_results)[rownames(rna_cols)]
+    dds_rna_temp <- estimateDispersions(dds_rna_temp, fitType='local')
+    dds_rna[[celltype]] <- dds_rna_temp
+  }
+  
+  # Replace dispersions in normalized dds with the celltype specific dispersions
+  if(upDisp==T){
+    cellsp_dds <- tagSig(dds_results, dds_rna, cond_data, exclList, prior)
+  }
 
   for (celltype in levels(cond_data$condition)) {
     if(celltype == "DNA" | celltype %in% exclList) next
     message(celltype)
+    
+    if(upDisp==T){
+      dds_results <- cellsp_dds[[celltype]]
+    }
+    
+    counts_norm <- counts(dds_results, normalized = T)
+    
+    write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(),"_",celltype, "_normalized_counts.out"), quote = F, sep = "\t")
+    
+    if(DEase==T){
+      message("Removing count duplicates")
+      counts_DE <- counts(dds_results, normalized=F)
+      counts_norm_DE <- expandDups(counts_DE)
+    }
 
     outputA <- results(dds_results, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
 
+    temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
+    
+    message("Plotting Normalization Curves")
+    pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
+    plot(density(temp_outputB[attribute_ids,"log2FoldChange"],na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
+    lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
+    lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
+    lines(density(outputA[attribute_ids,"log2FoldChange"],na.rm=TRUE),xlim=c(-3,3),col="salmon")
+    text(1.5,0.4,adj=c(0,0),labels="All - baseline",col="black")
+    text(1.5,0.35,adj=c(0,0),labels="All - corrected",col="red")
+    text(1.5,0.3,adj=c(0,0),labels=paste0(negCtrlName," - baseline"),col="grey")
+    text(1.5,0.25,adj=c(0,0),labels=paste0(negCtrlName," - corrected"),col="salmon")
+    abline(v=0)
+    dev.off()
+    
     message("Results of dds_results recieved")
 
     ctrl_cols <- row.names(condition_table[condition_table$condition=="DNA",])
