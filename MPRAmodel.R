@@ -495,40 +495,37 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
     odds <- seq(2, nrow(snp_data_pairs), by=2)
   }
 
-  out <- cbind(
-    snp_data_expdata_pairs[evens,c(1,2,3,4,5,6,7,9)],
-    within(data.frame(
-      A_Ctrl_Mean <- snp_data_expdata_pairs[evens, "ctrl_mean"],
-      A_Exp_Mean <- snp_data_expdata_pairs[evens, "exp_mean"],
-      A_log2FC <- snp_data_expdata_pairs[evens, "log2FoldChange"],
-      A_log2FC_SE <- snp_data_expdata_pairs[evens, "lfcSE"],
-      A_logP <- -log10(snp_data_expdata_pairs[evens, "pvalue"]),
-      A_logPadj_BH <- -log10(snp_data_expdata_pairs[evens, "padj"]),    #BH Correction
-      A_logPadj_BF <- -log10(snp_data_expdata_pairs[evens, "pvalue"]*(nrow(snp_data_expdata_pairs)/2)),    #BF Correction
-      B_Ctrl_Mean <- snp_data_expdata_pairs[odds, "ctrl_mean"],
-      B_Exp_Mean <- snp_data_expdata_pairs[odds, "exp_mean"],
-      B_log2FC <- snp_data_expdata_pairs[odds, "log2FoldChange"],
-      B_log2FC_SE <- snp_data_expdata_pairs[odds, "lfcSE"],
-      B_logP <- -log10(snp_data_expdata_pairs[odds, "pvalue"]),
-      B_logPadj_BH <- -log10(snp_data_expdata_pairs[odds, "padj"]),    #BH Correction
-      B_logPadj_BF <- -log10(snp_data_expdata_pairs[odds, "pvalue"]*(nrow(snp_data_expdata_pairs)/2))),{   #BF Correction
-        A_logP[is.na(A_logP)] <- 0
-        A_logP[A_logP == Inf] <- max(A_logP[is.finite(A_logP)])
-        A_logPadj_BH[A_logPadj_BH < 0]<-0
-        A_logPadj_BH[A_logPadj_BH == Inf] <- max(A_logPadj_BH[is.finite(A_logPadj_BH)])
-        A_logPadj_BF[A_logPadj_BF < 0]<-0
-        A_logPadj_BF[A_logPadj_BF == Inf] <- max(A_logPadj_BF[is.finite(A_logPadj_BF)])
-        B_logP[is.na(B_logP)] <- 0
-        B_logP[B_logP == Inf] <- max(B_logP[is.finite(B_logP)])
-        B_logPadj_BH[B_logPadj_BH < 0]<-0
-        B_logPadj_BH[B_logPadj_BH == Inf] <- max(B_logPadj_BH[is.finite(B_logPadj_BH)])
-        B_logPadj_BF[B_logPadj_BF < 0]<-0
-        B_logPadj_BF[B_logPadj_BF == Inf] <- max(B_logPadj_BF[is.finite(B_logPadj_BF)])
-      }))
+  out <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),c(1:9)]
+  out$A_Ctrl_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"ctrl_mean"]
+  out$A_Exp_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"exp_mean"]
+  out$A_log2FC <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"log2FoldChange"]
+  out$A_log2FC_SE <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"lfcSE"]
+  out$A_logP <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="ref"),"pvalue"])
+  out$A_logP[is.na(out$A_logP)] <- 0
+  out$A_logP[out$A_logP == Inf] <- max(out$A_logP[is.finite(out$A_logP)])
+  out$A_logPadj_BH <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="ref"),"padj"])
+  out$A_logPadj_BH[out$A_logPadj_BH < 0] <- 0
+  out$A_logPadj_BH[out$A_logPadj_BH == Inf] <- max(out$A_logPadj_BH[is.finite(out$A_logPadj_BH)])
+  out$A_logPadj_BF <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="ref"),"pvalue"]*(nrow(snp_data_pairs)/2))
+  out$A_logPadj_BF[out$A_logPadj_BF < 0] <- 0
+  out$A_logPadj_BF[out$A_logPadj_BF == Inf] <- max(out$A_logPadj_BF[is.finite(out$A_logPadj_BF)])
+  out$B_Ctrl_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"ctrl_mean"]
+  out$B_Exp_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"exp_mean"]
+  out$B_log2FC <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"log2FoldChange"]
+  out$B_log2FC_SE <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"lfcSE"]
+  out$B_logP <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"pvalue"])
+  out$B_logP[is.na(out$B_logP)] <- 0
+  out$B_logP[out$B_logP == Inf] <- max(out$B_logP[is.finite(out$B_logP)])
+  out$B_logPadj_BH <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"padj"])
+  out$B_logPadj_BH[out$B_logPadj_BH < 0] <- 0
+  out$B_logPadj_BH[out$B_logPadj_BH == Inf] <- max(out$B_logPadj_BH[is.finite(out$B_logPadj_BH)])
+  out$B_logPadj_BF <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"pvalue"]*(nrow(snp_data_pairs)/2))
+  out$B_logPadj_BF[out$B_logPadj_BF < 0] <- 0
+  out$B_logPadj_BF[out$B_logPadj_BF == Inf] <- max(out$B_logPadj_BF[is.finite(out$B_logPadj_BF)])
 
-  out2 <- out[,c(1:12, 16:19, 23:28)]
-  colnames(out2) <- c("ID", "SNP", "chr", "pos", "ref_allele", "alt_allele", "allele", "strand", "A_Ctrl_Mean", "A_Exp_Mean", "A_log2FC", "A_log2FC_SE", "B_Ctrl_Mean", "B_Exp_Mean", "B_log2FC", "B_log2FC_SE",
-                      "B_logPadj_BF", "B_logPadj_BH", "B_logP", "A_logPadj_BF", "A_logPadj_BH", "A_logP")
+  out2 <- out#[,c(1:12, 16:19, 26:28, 23:25)]
+  # colnames(out2) <- c("ID", "SNP", "chr", "pos", "ref_allele", "alt_allele", "allele", "strand", "A_Ctrl_Mean", "A_Exp_Mean", "A_log2FC", "A_log2FC_SE", "B_Ctrl_Mean", "B_Exp_Mean", "B_log2FC", "B_log2FC_SE",
+                      # "B_logPadj_BF", "B_logPadj_BH", "B_logP", "A_logPadj_BF", "A_logPadj_BH", "A_logP")
 
   # Don't try to do the t test for ones with all zeros.
   ignore_idx <- which(rowMeans(snp_data_ctdata_pairs[odds,ctrl_cols]) < 10 | rowMeans(snp_data_ctdata_pairs[odds, exp_cols]) < 10 |
@@ -679,19 +676,20 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
 
   # Run DESeq analysis
   dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
-  sample_lets <- c(rep(LETTERS[1:dna_reps], each=total_cond), rep(LETTERS[1:rna_reps], each=total_cond))
-  dds$sample.n <- as.factor(sample_lets)
-  design(dds) <- ~material + material:sample.n + material:allele
+  # sample_lets <- c(rep(LETTERS[1:dna_reps], each=total_cond), rep(LETTERS[1:rna_reps], each=total_cond))
+  # dds$sample.n <- as.factor(sample_lets)
+  # design(dds) <- ~material + material:sample.n + material:allele
+  design(dds) <- ~material + material:allele
   sizeFactors(dds) <- rep(1, (dna_reps+rna_reps)*total_cond)
-  if(dna_reps != rna_reps){
-    mm <- model.matrix(~material + material:sample.n + material:allele, colData(dds))
-    col_mm <- ncol(mm)
-    mm <- mm[,c(1:((min(dna_reps,rna_reps))*2),(col_mm-1),col_mm)]
-    dds <- DESeq(dds, full = mm, fitType = "local", minReplicatesForReplace=Inf)
-  }
-  else{
+  # if(dna_reps != rna_reps){
+  #   mm <- model.matrix(~material + material:sample.n + material:allele, colData(dds))
+  #   col_mm <- ncol(mm)
+  #   mm <- mm[,c(1:((min(dna_reps,rna_reps))*2),(col_mm-1),col_mm)]
+  #   dds <- DESeq(dds, full = mm, fitType = "local", minReplicatesForReplace=Inf)
+  # }
+  # else{
     dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
-  }
+  # }
 
   # Get the skew results
   # cell_res <- paste0("condition",celltype,".countalt")
