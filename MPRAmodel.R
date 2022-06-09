@@ -496,30 +496,30 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   }
 
   out <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),c(1:9)]
-  out$A_Ctrl_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"ctrl_mean"]
-  out$A_Exp_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"exp_mean"]
-  out$A_log2FC <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"log2FoldChange"]
-  out$A_log2FC_SE <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),"lfcSE"]
-  out$A_logP <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="ref"),"pvalue"])
+  out$A_Ctrl_Mean <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"ctrl_mean"]
+  out$A_Exp_Mean <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"exp_mean"]
+  out$A_log2FC <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"log2FoldChange"]
+  out$A_log2FC_SE <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"lfcSE"]
+  out$A_logP <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"pvalue"])
   out$A_logP[is.na(out$A_logP)] <- 0
   out$A_logP[out$A_logP == Inf] <- max(out$A_logP[is.finite(out$A_logP)])
-  out$A_logPadj_BH <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="ref"),"padj"])
+  out$A_logPadj_BH <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"padj"])
   out$A_logPadj_BH[out$A_logPadj_BH < 0] <- 0
   out$A_logPadj_BH[out$A_logPadj_BH == Inf] <- max(out$A_logPadj_BH[is.finite(out$A_logPadj_BH)])
-  out$A_logPadj_BF <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="ref"),"pvalue"]*(nrow(snp_data_pairs)/2))
+  out$A_logPadj_BF <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"pvalue"]*(nrow(snp_data_expdata_pairs)/2))
   out$A_logPadj_BF[out$A_logPadj_BF < 0] <- 0
   out$A_logPadj_BF[out$A_logPadj_BF == Inf] <- max(out$A_logPadj_BF[is.finite(out$A_logPadj_BF)])
-  out$B_Ctrl_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"ctrl_mean"]
-  out$B_Exp_Mean <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"exp_mean"]
-  out$B_log2FC <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"log2FoldChange"]
-  out$B_log2FC_SE <- snp_data_pairs[which(snp_data_pairs$allele=="alt"),"lfcSE"]
-  out$B_logP <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"pvalue"])
+  out$B_Ctrl_Mean <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"ctrl_mean"]
+  out$B_Exp_Mean <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"exp_mean"]
+  out$B_log2FC <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"log2FoldChange"]
+  out$B_log2FC_SE <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"lfcSE"]
+  out$B_logP <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"pvalue"])
   out$B_logP[is.na(out$B_logP)] <- 0
   out$B_logP[out$B_logP == Inf] <- max(out$B_logP[is.finite(out$B_logP)])
-  out$B_logPadj_BH <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"padj"])
+  out$B_logPadj_BH <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"padj"])
   out$B_logPadj_BH[out$B_logPadj_BH < 0] <- 0
   out$B_logPadj_BH[out$B_logPadj_BH == Inf] <- max(out$B_logPadj_BH[is.finite(out$B_logPadj_BH)])
-  out$B_logPadj_BF <- -log10(snp_data_pairs[which(snp_data_pairs$allele=="alt"),"pvalue"]*(nrow(snp_data_pairs)/2))
+  out$B_logPadj_BF <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"pvalue"]*(nrow(snp_data_expdata_pairs)/2))
   out$B_logPadj_BF[out$B_logPadj_BF < 0] <- 0
   out$B_logPadj_BF[out$B_logPadj_BF == Inf] <- max(out$B_logPadj_BF[is.finite(out$B_logPadj_BF)])
 
