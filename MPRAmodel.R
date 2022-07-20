@@ -941,7 +941,7 @@ mpraScatter<-function(conditionData, countsOut, sampleX, sampleY,xmax,ymax, plot
 ### Function to produce plots showing the expression fold change vs. normalized tag counts
 # full_output     : Output from dataOut function
 # sample          : Cell Type as string
-plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="expCtrl") {
+plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="expCtrl", color_table) {
   message(paste(dim(full_output), collapse = "\t"))
   message(paste(summary(full_output$ctrl_mean), collapse = "\t"))
   message(class(full_output))
@@ -971,7 +971,9 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
     geom_abline(intercept = 0, slope = 0,linetype = 1, size=.75, color=rgb(255,140,0,150,maxColorValue=255))
 
   message("colors set")
-  cbPalette <- c("#56B4E9","#F84763","#009E73", "#CAA674", "#0072B2", "#D55E00", "#CC79A7","#8057BB","#FBAD12","#999999")
+  pal_len <- length(unique(full_output$project))
+  cbPalette <- color_list[pal_len,]
+  cbPalette <- !is.na(cbPalette)
 
   tmp_plotB<-1
   tmp_plotB<-ggplot(exp_values,aes(x=ctrl_mean,y=log2FoldChange,color=ctrl_exp)) +
@@ -1005,7 +1007,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", exclList=c(), plotSave=T, altRef=T, method = 'ss', tTest=T, DEase=T, cSkew=T, correction="BH", cutoff=0.01, upDisp=T, prior=F, raw=T, ...){
+MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", exclList=c(), plotSave=T, altRef=T, method = 'ss', tTest=T, DEase=T, cSkew=T, correction="BH", cutoff=0.01, upDisp=T, prior=F, raw=T, color_table, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
@@ -1082,7 +1084,7 @@ MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, neg
     message(celltype)
     output_tmp<-full_output[[celltype]]
     message(paste(dim(output_tmp), collapse="\t"))
-    plot_list<-plot_logFC(output_tmp, celltype, negCtrlName, posCtrlName)
+    plot_list<-plot_logFC(output_tmp, celltype, negCtrlName, posCtrlName, color_table)
     if(plotSave==F){
       plot_list[[1]]
       plot_list[[2]]
@@ -1095,155 +1097,3 @@ MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, neg
   return(counts_out)
 }
 
-
-cellSkew <- function(conditionData, counts_norm, attributesData,file_prefix){
-
-  ds_cond_data <- as.data.frame(conditionData)
-  # Prepare the sample table
-  message("Preparing Sample Table")
-  totals <- data.frame(table(ds_cond_data$condition))
-  totals$Var1 <- sort(totals$Var1, partial=unique(ds_cond_data$condition))
-  totals <- totals[match(unique(ds_cond_data$condition),totals$Var1),]
-  
-  samps <- data.frame(celltype=factor(rep(unique(ds_cond_data$condition), times=2*totals$Freq)),
-                           allele=factor(rep(c("ref","alt"),nrow(ds_cond_data)), levels = c("ref","alt")),
-                           samples=factor(rep(rownames(ds_cond_data), each=2)))
-  
-  
-  # Reorganize the count data
-  message("reorganizing count data")
-  snp_data <- subset(attributesData,allele=="ref" | allele=="alt")
-  snp_data$comb <- paste(snp_data$SNP,"_",snp_data$window,"_",snp_data$strand,"_",snp_data$haplotype,sep="")
-  tmp_ct <- as.data.frame(table(snp_data$comb))
-  
-  snp_data_pairs <- snp_data[snp_data$comb %in% tmp_ct[tmp_ct$Freq==2,]$Var1,]
-  # snp_data_pairs <- merge(snp_data_pairs,as.data.frame(dups_output), by.x="ID", by.y="row.names", all.x=T, no.dups=F)
-  
-  id_ref_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="ref")]
-  # message(length(id_ref_all))
-  id_alt_all <- snp_data_pairs$ID[which(snp_data_pairs$allele=="alt")]
-  # message(length(id_alt_all))
-  
-  expr.res <- list()
-  skew.res <- list()
-  for(cell in unique(samps$celltype)){
-    if(cell=="DNA") next
-    message(cell)
-    ds_cond_temp <- ds_cond_data[which(ds_cond_data$condition=="DNA" | ds_cond_data$condition==cell),]
-    
-    counts_ref <- counts_norm[which(rownames(counts_norm) %in% id_ref_all),colnames(counts_norm) %in% rownames(ds_cond_temp),drop=F]
-    colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
-    # message(class(rownames(counts_ref)))
-    counts_ref <- merge(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand")], by.x="row.names",by.y="ID",all.x=T)
-    counts_ref <- unique(counts_ref)
-    rownames(counts_ref) <- counts_ref$Row.names
-    counts_ref$ID <- counts_ref$Row.names
-    
-    counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),colnames(counts_norm) %in% rownames(ds_cond_temp),drop=F]
-    colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
-    counts_alt <- merge(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand")], by.x="row.names",by.y="ID",all.x=T)
-    counts_alt <- unique(counts_alt)
-    rownames(counts_alt) <- counts_alt$Row.names
-    counts_alt <- counts_alt[,-1]
-    
-    counts_ref_alt <- merge(counts_ref, counts_alt, by=c("SNP","chr","pos","ref_allele","alt_allele","window","strand"), all=T)
-    
-    column_order <- samps[which(samps$celltype=="DNA" | samps$celltype==cell), c("allele","samples")]
-    column_order$order <- paste0(column_order$samples,"_",column_order$allele)
-    
-    counts_ref_alt <- counts_ref_alt[,c("ID","SNP","chr","pos","ref_allele","alt_allele","allele.x","window","strand",column_order$order)]
-    colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand",column_order$order)
-    message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
-    
-    counts_mat <- as.matrix(counts_ref_alt[,column_order$order])
-    
-    ids_comp <- counts_ref_alt$ID[complete.cases(counts_mat)]
-    message(paste0("tot_id: ",length(ids_comp)))
-    counts_mat <- counts_mat[complete.cases(counts_mat),]
-    
-    samps_red <- samps[which(samps$celltype=="DNA" | samps$celltype==cell),]
-    counts_all <- counts_norm[,colnames(counts_norm) %in% rownames(ds_cond_temp),drop=F]
-    
-    design1 <- ~celltype + celltype:allele
-    design2 <- ~celltype
-    
-    # message(paste0(samps_red$samples, collapse = "\t"))
-    # message(paste0(colnames(counts_all), collapse = "\t"))
-    
-    dds_exp <- DESeqDataSetFromMatrix(counts_all, samps_red[which(samps_red$allele=="ref"),], design2)
-    dds_skw <- DESeqDataSetFromMatrix(counts_mat, samps_red, design1)
-    
-    # sizeFactors(dds_exp) <- rep(1, length(sizeFactors(dds_exp)))
-    # sizeFactors(dds_skw) <- rep(1, length(sizeFactors(dds_skw)))
-    
-    dds_exp$celltype <- relevel(dds_exp$celltype,"DNA")
-    dds_skw$celltype <- relevel(dds_skw$celltype,"DNA")
-    
-    dds_exp <- DESeq(dds_exp, fitType = "local", minReplicatesForReplace = Inf)
-    dds_skw <- DESeq(dds_skw, fitType = "local", minReplicatesForReplace = Inf)
-    
-    message("results expression")
-    res.exp <- results(dds_exp, contrast = c("celltype", cell, "DNA"), cooksCutoff=F, independentFiltering=F)
-    message("results skew")
-    # message(paste0(resultsNames(dds_skw)))
-    res.skw <- results(dds_skw, contrast = list(paste0("celltype",cell,".allelealt"),"celltypeDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
-    
-    exp.temp <- res.exp[,2,drop=F]
-    colnames(exp.temp) <- paste0(cell,"_log2FC")
-    rownames(exp.temp) <- rownames(counts_norm)
-    
-    skw.temp <- res.skw[,2,drop=F]
-    colnames(skw.temp) <- paste0(cell,"_log2Skew")
-    rownames(skw.temp) <- ids_comp
-    
-    expr.res[[cell]] <- exp.temp
-    skew.res[[cell]] <- skw.temp
-  }
-  
-  expr.out <- data.frame()
-  for(celltype in names(expr.res)){
-    message(celltype)
-    if(celltype == names(expr.res)[1]){
-      expr.out <- as.data.frame(expr.res[[celltype]])
-    }
-    else{
-      expr.out <- merge(expr.out, as.data.frame(expr.res[[celltype]]), by="row.names", all=T)
-      rownames(expr.out) <- expr.out[,1]
-      expr.out <- expr.out[,-1]
-    }
-  }
-  
-  skew.out <- data.frame()
-  for(celltype in names(skew.res)){
-    message(celltype)
-    if(celltype==names(skew.res)[1]){
-      skew.out <- as.data.frame(skew.res[[celltype]])
-    }
-    else{
-      skew.out <- merge(skew.out, as.data.frame(skew.res[[celltype]]), by="row.names", all=T)
-      rownames(skew.out) <- skew.out[,1]
-      skew.out <- skew.out[,-1]
-    }
-  }
-  
-  comparisons <- combn(names(skew.res), m=2)
-  
-  for(comp in 1:ncol(comparisons)){
-    message(paste0(comparisons[,comp], collapse = "\t"))
-    comp_id <- paste0(comparisons[1,comp],".",comparisons[2,comp])
-    comp_temp <- expr.out[,paste0(comparisons[1,comp],"_log2FC")]/expr.out[,paste0(comparisons[2,comp],"_log2FC")]
-    expr.out[[comp_id]] <- comp_temp
-  }
-  
-  for(comp in 1:ncol(comparisons)){
-    message(paste0(comparisons[,comp], collapse = "\t"))
-    comp_id <- paste0(comparisons[1,comp],".",comparisons[2,comp])
-    comp_temp <- skew.out[,paste0(comparisons[1,comp],"_log2Skew")]/skew.out[,paste0(comparisons[2,comp],"_log2Skew")]
-    skew.out[[comp_id]] <- comp_temp
-  }
-  
-  write.table(expr.out, paste0("results/",file_prefix,"_",fileDate(),"_celltype_expression_comparison.txt"), quote = F, sep = "\t")
-  write.table(skew.out, paste0("results/",file_prefix,"_",fileDate(),"_celltype_skew_comparison.txt"), quote=F, sep = "\t")
-  
-  return(list(expr.out,skew.out))
-}
