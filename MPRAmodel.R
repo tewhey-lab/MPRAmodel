@@ -971,10 +971,9 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
     geom_abline(intercept = 0, slope = 0,linetype = 1, size=.75, color=rgb(255,140,0,150,maxColorValue=255))
 
   message("colors set")
-  pal_len <- length(unique(full_output$project))
-  cbPalette <- color_table[pal_len,]
-  cbPalette <- !is.na(cbPalette)
-
+  #cbPalette <- c("#56B4E9","#F84763","#009E73", "#CAA674", "#0072B2", "#D55E00", "#CC79A7","#8057BB","#FBAD12","#999999")
+  cbPalette <- c("#3F47C9","#4274CE","#4F97BB","#64AC99","#7EB976","#9EBE5A","#BEBB48","#D9AE3E","#E69036","#E35F2D","#DB2823")
+  
   tmp_plotB<-1
   tmp_plotB<-ggplot(exp_values,aes(x=ctrl_mean,y=log2FoldChange,color=ctrl_exp)) +
     theme_bw() + theme(panel.grid.major = element_line(size = .25,colour = rgb(0,0,0,75,maxColorValue=255)), panel.grid.minor = element_blank()) +
