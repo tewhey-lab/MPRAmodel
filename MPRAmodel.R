@@ -972,7 +972,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 
   message("colors set")
   pal_len <- length(unique(full_output$project))
-  cbPalette <- color_list[pal_len,]
+  cbPalette <- color_table[pal_len,]
   cbPalette <- !is.na(cbPalette)
 
   tmp_plotB<-1
