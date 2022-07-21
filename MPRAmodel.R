@@ -296,8 +296,9 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=F){
 ## OUTPUT: writes duplicate output and ttest files for each celltype
 dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",
                     tTest=T, DEase=T, cSkew=T, correction="BH", cutoff=0.01, upDisp=T, prior=F){
-  countsData <- countsData[,c("Barcode","Oligo",rownames(conditionData))]
-  count_data <- oligoIsolate(countsData, file_prefix)
+  counts_data <- countsData[,c("Barcode","Oligo",rownames(conditionData))]
+  message(paste0(colnames(counts_data), collapse = "\t"))
+  count_data <- oligoIsolate(counts_data, file_prefix)
   message("Oligos isolated")
   dds_results_all <- tagNorm(count_data, conditionData, attributesData, exclList, method, negCtrlName, upDisp, prior)
   dds_results <- dds_results_all[[1]]
@@ -971,8 +972,9 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
     geom_abline(intercept = 0, slope = 0,linetype = 1, size=.75, color=rgb(255,140,0,150,maxColorValue=255))
 
   message("colors set")
-  #cbPalette <- c("#56B4E9","#F84763","#009E73", "#CAA674", "#0072B2", "#D55E00", "#CC79A7","#8057BB","#FBAD12","#999999")
-  cbPalette <- c("#3F47C9","#4274CE","#4F97BB","#64AC99","#7EB976","#9EBE5A","#BEBB48","#D9AE3E","#E69036","#E35F2D","#DB2823")
+  # cbPalette <- c("#56B4E9","#F84763","#009E73", "#CAA674", "#0072B2", "#D55E00", "#CC79A7","#8057BB","#FBAD12","#999999")
+  # cbPalette <- c("#3F47C9","#4274CE","#4F97BB","#64AC99","#7EB976","#9EBE5A","#BEBB48","#D9AE3E","#E69036","#E35F2D","#DB2823")
+  cbPalette <- c("#8DD3C7","#FFFFB3","#BEBADA","#FB8072","#80B1D3","#FDB462","#B3DE69","#FCCDE5","#D9D9D9","#BC80BD","#CCEBC5","#FFED6F")
   
   tmp_plotB<-1
   tmp_plotB<-ggplot(exp_values,aes(x=ctrl_mean,y=log2FoldChange,color=ctrl_exp)) +
