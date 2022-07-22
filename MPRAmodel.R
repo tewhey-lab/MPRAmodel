@@ -975,7 +975,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
   # cbPalette <- c("#56B4E9","#F84763","#009E73", "#CAA674", "#0072B2", "#D55E00", "#CC79A7","#8057BB","#FBAD12","#999999")
   # cbPalette <- c("#3F47C9","#4274CE","#4F97BB","#64AC99","#7EB976","#9EBE5A","#BEBB48","#D9AE3E","#E69036","#E35F2D","#DB2823")
   # cbPalette <- c("#8DD3C7","#FFFFB3","#BEBADA","#FB8072","#80B1D3","#FDB462","#B3DE69","#FCCDE5","#D9D9D9","#BC80BD","#CCEBC5","#FFED6F")
-  cbPalette <- c("#E6194B","#F58321","#FFE119","#FEF45","#3CB44B","#42D4F4","#4363D8","#911EB4","#F032E6","#000075","#A9A9A9","#000000")
+  cbPalette <- c("#E6194B","#F58321","#FFE119","#BFEF45","#3CB44B","#42D4F4","#4363D8","#911EB4","#F032E6","#000075","#A9A9A9","#000000")
   
   tmp_plotB<-1
   tmp_plotB<-ggplot(exp_values,aes(x=ctrl_mean,y=log2FoldChange,color=ctrl_exp)) +
