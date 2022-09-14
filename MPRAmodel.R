@@ -355,7 +355,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     temp_outputB <- results(dds_results_orig, contrast=c("condition",celltype,"DNA"), cooksCutoff=F, independentFiltering=F)
     
     message("Plotting Normalization Curves")
-    pdf(paste0("plots/Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
+    pdf(paste0("plots/",file_prefix,"_",fileDate(),"_Normalized_FC_Density_",celltype,".pdf"),width=10,height=10)
     plot(density(temp_outputB[attribute_ids,"log2FoldChange"],na.rm=TRUE),xlim=c(-3,3),ylim=c(0,1.5),col="grey",main=paste0("Normalization - ",celltype))
     lines(density(temp_outputB$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="black")
     lines(density(outputA$log2FoldChange,na.rm=TRUE),xlim=c(-3,3),col="red")
@@ -1038,13 +1038,13 @@ MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, neg
   }
 
   if(plotSave==T){
-    png(file="plots/Cor_mat_log.png",width=3000,height=3000)
+    png(file=paste0("plots/",file_prefix,"_",fileDate(),"_Cor_mat_log.png"),width=3000,height=3000)
     pairs(counts_out,upper.panel=panel.cor,lower.panel=panel.lm,log="xy",pch=16)
     dev.off()
-    png(file="plots/Cor_mat.png",width=3000,height=3000)
+    png(file=paste0("plots/",file_prefix,"_",fileDate(),"_Cor_mat.png"),width=3000,height=3000)
     pairs(counts_out,upper.panel=panel.cor,lower.panel=panel.lm,pch=16)
     dev.off()
-    png(file="plots/Cor_mat_2.png",width=3000,height=3000)
+    png(file=paste0("plots/",file_prefix,"_",fileDate(),"_Cor_mat_2.png"),width=3000,height=3000)
     pairs(counts_out,upper.panel=panel.cor,lower.panel=panel.lm,xlim=c(0,2000),ylim=c(0,2000),pch=16)
     dev.off()
   }
@@ -1096,8 +1096,8 @@ MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, neg
       plot_list[[2]]
     }
     if(plotSave==T){
-      ggsave(paste0("plots/logFC_",celltype,".pdf"),plot_list[[1]],units="in",width=8,height=6,device="pdf")
-      ggsave(paste0("plots/logFC_",celltype,"_controls.pdf"),plot_list[[2]],units="in",width=8,height=6,device="pdf")
+      ggsave(paste0("plots/",file_prefix,"_",fileDate(),"_logFC_",celltype,".pdf"),plot_list[[1]],units="in",width=8,height=6,device="pdf")
+      ggsave(paste0("plots/",file_prefix,"_",fileDate(),"_logFC_",celltype,"_controls.pdf"),plot_list[[2]],units="in",width=8,height=6,device="pdf")
     }
   }
   return(counts_out)
