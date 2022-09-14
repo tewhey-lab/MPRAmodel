@@ -911,7 +911,7 @@ panel.nlm <- function (x, y,  pch = par("pch"), col.lm = "red",  ...) {
 # sampleY         : string of different sample name (column name from counts data)
 # xmax            : maximum x value to include in plot
 # ymax            : maximum y value to include in plot
-mpraScatter<-function(conditionData, countsOut, sampleX, sampleY,xmax,ymax, plotSave=T) {
+mpraScatter<-function(conditionData, countsOut, sampleX, sampleY,xmax,ymax, plotSave=T, file_prefix) {
   cond_data <- conditionStandard(conditionData)
   count_df<-as.data.frame(countsOut)
   ggplot_output<-ggplot(count_df, aes_string(sampleX,sampleY)) +
@@ -1075,12 +1075,12 @@ MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, neg
   for(i in rep1_loc){
     sampleX <- colnames(counts_out)[i]
     sampleY <- colnames(counts_out)[i+1]
-    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, xmax = xmax, ymax = ymax, plotSave)
+    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, xmax = xmax, ymax = ymax, plotSave, file_prefix)
   }
   for(combo in dim(cell_combinations)[2]){
     sampleX <- cell_combinations[1,combo]
     sampleY <- cell_combinations[2,combo]
-    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, xmax = xmax, ymax = ymax, plotSave)
+    mpraScatter(conditionData = cond_data, countsOut = counts_out, sampleX, sampleY, xmax = xmax, ymax = ymax, plotSave, file_prefix)
   }
 
   #Prepare for plot_logFC
