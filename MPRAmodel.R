@@ -512,6 +512,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   out <- merge(out, snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),c("ID","comb","ctrl_mean","exp_mean","log2FoldChange","lfcSE","pvalue","padj")], by = c("comb","ID"))
   colnames(out)[12:17] <- c("A_Ctrl_Mean","A_Exp_Mean","A_log2FC","A_log2FC_SE","A_logP","A_logPadj_BH")
   
+  out$A_logPadj_BH <- -log10(out$A_logPadj_BH)
   out$A_logPadj_BH[out$A_logPadj_BH < 0] <- 0
   out$A_logPadj_BH[out$A_logPadj_BH == Inf] <- max(out$A_logPadj_BH[is.finite(out$A_logPadj_BH)])
   out$A_logPadj_BF <- -log10(out$A_logP*(nrow(snp_data_expdata_pairs)/2))
@@ -523,6 +524,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   out <- merge(out, snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),c("comb","ctrl_mean","exp_mean","log2FoldChange","lfcSE","pvalue","padj")], by = "comb")
   colnames(out)[19:24] <- c("B_Ctrl_Mean","B_Exp_Mean","B_log2FC","B_log2FC_SE","B_logP","B_logPadj_BH")
   
+  out$B_logPadj_BH <- -log10(out$B_logPadj_BH)
   out$B_logPadj_BH[out$B_logPadj_BH < 0] <- 0
   out$B_logPadj_BH[out$B_logPadj_BH == Inf] <- max(out$B_logPadj_BH[is.finite(out$B_logPadj_BH)])
   out$B_logPadj_BF <- -log10(out$B_logP*(nrow(snp_data_expdata_pairs)/2))
@@ -691,6 +693,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   # message(paste0("counts IDs: ", paste0(head(out$ID), collapse = "\t")))
   # message(paste0(dim(out), collapse = "\t"))
   
+  out$A_logPadj_BH <- -log10(out$A_logPadj_BH)
   out$A_logPadj_BH[out$A_logPadj_BH < 0] <- 0
   out$A_logPadj_BH[out$A_logPadj_BH == Inf] <- max(out$A_logPadj_BH[is.finite(out$A_logPadj_BH)])
   out$A_logPadj_BF <- -log10(out$A_logP*(nrow(snp_data_pairs)/2))
@@ -709,6 +712,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   # message(paste0("counts IDs: ", paste0(head(out$ID), collapse = "\t")))
   # message(paste0(dim(out), collapse = "\t"))
   
+  out$B_logPadj_BH <- -log10(out$B_logPadj_BH)
   out$B_logPadj_BH[out$B_logPadj_BH < 0] <- 0
   out$B_logPadj_BH[out$B_logPadj_BH == Inf] <- max(out$B_logPadj_BH[is.finite(out$B_logPadj_BH)])
   out$B_logPadj_BF <- -log10(out$B_logP*(nrow(snp_data_pairs)/2))
