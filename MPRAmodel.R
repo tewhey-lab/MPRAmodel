@@ -933,10 +933,10 @@ mpraScatter<-function(conditionData, countsOut, sampleX, sampleY,xmax,ymax, plot
       }
     }
     if(sample_typeX == sample_typeY){
-      ggsave(paste0("plots/", sample_typeX, "_cor.png"),ggplot_output,units="in",width=4,height=4,device="png")
+      ggsave(paste0("plots/",file_prefix,"_",fileDate(),"_",sample_typeX, "_cor.png"),ggplot_output,units="in",width=4,height=4,device="png")
     }
     if(sample_typeX != sample_typeY){
-      ggsave(paste0("plots/", sample_typeX, "_", sample_typeY, "_cor.png"),ggplot_output,units="in",width=4,height=4,device="png")
+      ggsave(paste0("plots/",file_prefix,"_",fileDate(),"_",sample_typeX, "_", sample_typeY, "_cor.png"),ggplot_output,units="in",width=4,height=4,device="png")
     }
   }
 
