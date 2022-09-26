@@ -383,7 +383,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
 
     message("Removing Duplicates")
     dups_output<-expandDups(output_2)
-    message(paste0(colnames(dups_output),collapse = "\t"))
+    # message(paste0(colnames(dups_output),collapse = "\t"))
 
     message("Writing Standard Results File")
     full_outputA<-merge(attributesData, as.data.frame(dups_output), by.x="ID", by.y="row.names", all.x=TRUE, no.dups=F)
@@ -406,7 +406,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
       # write.table(counts_norm_DE, "results/counts_DE_passed.txt", row.names=T, col.names=T, quote = F, sep = "\t")
       # write.table(attributesData, "results/attributes_passed.txt", row.names=F, quote = F, sep = "\t")
       # write.table(dups_output, "results/de_duped_passed.txt", quote=F, sep = "\t")
-      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output,prior)
+      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output,prior, cutoff)
       write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DE_ase_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     }
 
@@ -533,40 +533,10 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   out$B_logP[out$B_logP == Inf] <- max(out$B_logP[is.finite(out$B_logP)])
   out$B_logPadj_BF[out$B_logPadj_BF < 0] <- 0
   out$B_logPadj_BF[out$B_logPadj_BF == Inf] <- max(out$B_logPadj_BF[is.finite(out$B_logPadj_BF)])
-  
-  # out <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),c(1:9)]
-  # out$A_Ctrl_Mean <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"ctrl_mean"]
-  # out$A_Exp_Mean <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"exp_mean"]
-  # out$A_log2FC <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"log2FoldChange"]
-  # out$A_log2FC_SE <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"lfcSE"]
-  # out$A_logP <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"pvalue"])
-  # out$A_logP[is.na(out$A_logP)] <- 0
-  # out$A_logP[out$A_logP == Inf] <- max(out$A_logP[is.finite(out$A_logP)])
-  # out$A_logPadj_BH <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"padj"])
-  # out$A_logPadj_BH[out$A_logPadj_BH < 0] <- 0
-  # out$A_logPadj_BH[out$A_logPadj_BH == Inf] <- max(out$A_logPadj_BH[is.finite(out$A_logPadj_BH)])
-  # out$A_logPadj_BF <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="ref"),"pvalue"]*(nrow(snp_data_expdata_pairs)/2))
-  # out$A_logPadj_BF[out$A_logPadj_BF < 0] <- 0
-  # out$A_logPadj_BF[out$A_logPadj_BF == Inf] <- max(out$A_logPadj_BF[is.finite(out$A_logPadj_BF)])
-  # out$B_Ctrl_Mean <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"ctrl_mean"]
-  # out$B_Exp_Mean <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"exp_mean"]
-  # out$B_log2FC <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"log2FoldChange"]
-  # out$B_log2FC_SE <- snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"lfcSE"]
-  # out$B_logP <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"pvalue"])
-  # out$B_logP[is.na(out$B_logP)] <- 0
-  # out$B_logP[out$B_logP == Inf] <- max(out$B_logP[is.finite(out$B_logP)])
-  # out$B_logPadj_BH <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"padj"])
-  # out$B_logPadj_BH[out$B_logPadj_BH < 0] <- 0
-  # out$B_logPadj_BH[out$B_logPadj_BH == Inf] <- max(out$B_logPadj_BH[is.finite(out$B_logPadj_BH)])
-  # out$B_logPadj_BF <- -log10(snp_data_expdata_pairs[which(snp_data_expdata_pairs$allele=="alt"),"pvalue"]*(nrow(snp_data_expdata_pairs)/2))
-  # out$B_logPadj_BF[out$B_logPadj_BF < 0] <- 0
-  # out$B_logPadj_BF[out$B_logPadj_BF == Inf] <- max(out$B_logPadj_BF[is.finite(out$B_logPadj_BF)])
 
   out2 <- out#[,c(1:12, 16:19, 26:28, 23:25)]
-  # colnames(out2) <- c("ID", "SNP", "chr", "pos", "ref_allele", "alt_allele", "allele", "strand", "A_Ctrl_Mean", "A_Exp_Mean", "A_log2FC", "A_log2FC_SE", "B_Ctrl_Mean", "B_Exp_Mean", "B_log2FC", "B_log2FC_SE",
-                      # "B_logPadj_BF", "B_logPadj_BH", "B_logP", "A_logPadj_BF", "A_logPadj_BH", "A_logP")
 
-  # Don't try to do the t test for ones with all zeros.
+   # Don't try to do the t test for ones with all zeros.
   ignore_idx <- which(rowMeans(snp_data_ctdata_pairs[odds,ctrl_cols]) < 10 | rowMeans(snp_data_ctdata_pairs[odds, exp_cols]) < 10 |
                         is.na(rowMeans(snp_data_ctdata_pairs[odds,ctrl_cols]))  | is.na(rowMeans(snp_data_ctdata_pairs[odds, exp_cols])) |
                         rowMeans(snp_data_ctdata_pairs[evens,ctrl_cols]) < 10 | rowMeans(snp_data_ctdata_pairs[evens, exp_cols]) < 10 |
@@ -607,16 +577,17 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
   if(correction=="BH"){
     is_OE <- out2$A_logPadj_BH >= OE_threshold | out2$B_logPadj_BH >= OE_threshold
   }
-  out2$Skew_logFDR <- rep(NA, dim(out)[1])
+  out2$Skew_logFDR <- -log10(p.adjust(t_pvalue, method = "BH"))
+  out2$Skew_logFDR_act <- rep(NA, nrow(out))
   q_idx <- intersect(which(is_OE), which(!is.na(t_pvalue)))
-  out2$Skew_logFDR[q_idx] <- -log10(p.adjust(t_pvalue[q_idx],method="BH"))
+  out2$Skew_logFDR_act[q_idx] <- -log10(p.adjust(t_pvalue[q_idx],method="BH"))
 
   return(out2)
 }
 
 ### Function to perform DESeq version of Allelic Skew
 
-DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_output,prior){
+DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_output,prior, cutoff){
   
   ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),,drop=F])
   
@@ -634,65 +605,25 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   # Reorganize the count data
   message("reorganizing count data")
   snp_data <- subset(attributesData,allele=="ref" | allele=="alt")
-  
-  # #message
-  # message(paste0(colnames(snp_data), collapse = "\t"))
-  
+
   snp_data$comb <- paste(snp_data$SNP,"_",snp_data$window,"_",snp_data$strand,"_",snp_data$haplotype,sep="")
-  
-  # #message
-  # message(paste0(head(snp_data$comb),collapse = "\t"))
-  
+
   tmp_ct <- as.data.frame(table(snp_data$comb))
   
   snp_data_pairs <- snp_data[snp_data$comb %in% tmp_ct[tmp_ct$Freq==2,]$Var1,]
-  
-  # #message
-  # message(paste0(head(snp_data_pairs$ID), collapse = "\t"))
-  
+
   pairs_ids <- snp_data_pairs$ID
   dups_ids <- rownames(dups_output)
   
-  # #message
-  # message(length(intersect(pairs_ids, dups_ids)))
   snp_data_pairs <- merge(snp_data_pairs,dups_output, by.x="ID", by.y="row.names", all=T, no.dups=F)
-  
-  # #message
-  # message(paste0(head(rownames(dups_output)), collapse = "\t"))
-  
-  # #message
-  # message(paste0(colnames(snp_data_pairs), collapse = "\t"))
-  
-  # #message
-  # message(paste0(colnames(snp_data_pairs), collapse = "\t"))
-  
-  # #message
-  # message(paste0(head(snp_data_pairs$comb), collapse = "\t"))
   
   message("COUNT OUT")
   out <- snp_data_pairs[which(snp_data_pairs$allele=="ref"),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand","haplotype")]
   out$comb <- paste0(out$SNP,"_",out$window,"_",out$strand,"_",out$haplotype)
   
-  # #message
-  # message(paste0(colnames(out), collapse = "\t"))
-  
-  # #message
-  # message(paste0("counts IDs: ", paste0(head(out$ID), collapse = "\t")))
-  # message(paste0("counts comb: ", paste0(head(out$comb), collapse = "\t")))
-  # message(paste0("snp_data_pairs IDs: ", paste0(head(snp_data_pairs$ID), collapse = "\t")))
-  # message(paste0("snp_data_pairs comb: ", paste0(head(snp_data_pairs$comb[which(snp_data_pairs$allele=="ref")]), collapse = "\t")))
-  # message(paste0(dim(out), collapse = "\t"))
-  
   out <- merge(out, snp_data_pairs[which(snp_data_pairs$allele=="ref"),c("ID","comb","ctrl_mean","exp_mean","log2FoldChange","lfcSE","pvalue","padj")], by = c("comb","ID"))
   colnames(out)[12:17] <- c("A_Ctrl_Mean","A_Exp_Mean","A_log2FC","A_log2FC_SE","A_logP","A_logPadj_BH")
-  
-  # #message
-  # message(paste0(colnames(out), collapse = "\t"))
-  
-  # #message
-  # message(paste0("counts IDs: ", paste0(head(out$ID), collapse = "\t")))
-  # message(paste0(dim(out), collapse = "\t"))
-  
+
   out$A_logPadj_BH <- -log10(out$A_logPadj_BH)
   out$A_logPadj_BH[out$A_logPadj_BH < 0] <- 0
   out$A_logPadj_BH[out$A_logPadj_BH == Inf] <- max(out$A_logPadj_BH[is.finite(out$A_logPadj_BH)])
@@ -705,13 +636,6 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   out <- merge(out, snp_data_pairs[which(snp_data_pairs$allele=="alt"),c("comb","ctrl_mean","exp_mean","log2FoldChange","lfcSE","pvalue","padj")], by = "comb")
   colnames(out)[19:24] <- c("B_Ctrl_Mean","B_Exp_Mean","B_log2FC","B_log2FC_SE","B_logP","B_logPadj_BH")
   
-  # #message
-  # message(paste0(colnames(out), collapse = "\t"))
-  
-  # #message
-  # message(paste0("counts IDs: ", paste0(head(out$ID), collapse = "\t")))
-  # message(paste0(dim(out), collapse = "\t"))
-  
   out$B_logPadj_BH <- -log10(out$B_logPadj_BH)
   out$B_logPadj_BH[out$B_logPadj_BH < 0] <- 0
   out$B_logPadj_BH[out$B_logPadj_BH == Inf] <- max(out$B_logPadj_BH[is.finite(out$B_logPadj_BH)])
@@ -722,104 +646,42 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   out$B_logPadj_BF[out$B_logPadj_BF < 0] <- 0
   out$B_logPadj_BF[out$B_logPadj_BF == Inf] <- max(out$B_logPadj_BF[is.finite(out$B_logPadj_BF)])
   
-  # #message
-  # message(paste0("out IDs: ", paste0(head(out$ID), collapse = "\t")))
-  
-  # #message
-  # message("Acquiring IDs")
-  
   counts_allele_id <- merge(snp_data_pairs[,c("ID","comb","allele","SNP","window","strand","haplotype")], counts_norm, by.x="ID", by.y="row.names", all.x=T)
-  
-  # #message
-  # message(paste0("counts cols: ",paste0(colnames(counts_allele_id), collapse = "\t"), collapse = ""))
-  
+
   rownames(counts_allele_id) <- counts_allele_id$ID
   
-  # message("ID INFO")
-  # message(paste0("ids data: ", paste0(head(snp_data_pairs$ID), collapse = "\t"), collapse = ""))
-  # message(paste0("rownames raw: ", paste0(head(rownames(counts_norm)), collapse = "\t"), collapse = ""))
-  # message(paste0("rownames counts: ", paste0(head(rownames(counts_allele_id)), collapse = "\t"), collapse = ""))
-  # message(paste0(colnames(counts_allele_id), collapse = "\t"))
-  # message(paste0(head(counts_allele_id$comb), collapse = "\t"))
-  # message(paste0(head(counts_allele_id$comb[which(counts_allele_id$allele=="ref")]), collapse = "\t"))
   message("done")
   
   message("COUNTS REF")
   
   counts_ref_all <- counts_allele_id[which(counts_allele_id$allele=="ref"),,drop=F]
   counts_ref <- counts_ref_all[,colnames(counts_ref_all) %in% rownames(ds_cond_data),drop=F]
-  
-  # #message
-  # message(paste0(head(rownames(counts_ref)), collapse = "\t"))
-  
-  # #message
-  # message(paste0(colnames(counts_ref), collapse = "\t"))
-  
+ 
   colnames(counts_ref) <- paste0(colnames(counts_ref),"_ref")
   counts_ref$comb <- paste0(counts_ref_all$SNP,"_",counts_ref_all$window,"_",counts_ref_all$strand,"_",counts_ref_all$haplotype)
   counts_ref$ID <- rownames(counts_ref)
-  
-  # #message
-  # message(paste0(head(counts_ref$comb), collapse = "\t"))
-  # message(paste0(head(snp_data_pairs$comb), collapse = "\t"))
-  
-  # #message
-  # message(paste0("counts_ref_all colnames: ",paste0(colnames(counts_ref_all), collapse = "\t")))
-  
-  # #message
-  # message("Merge INFO")
-  # message(paste0("counts_ref rownames: ", paste0(head(rownames(counts_ref)), collapse = "\t")))
-  # message(paste0("snp_data_pairs IDs: ", paste0(head(snp_data_pairs$ID), collapse = "\t")))
-  
+
   counts_ref <- merge(counts_ref, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_ref)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand","haplotype","comb")],by=c("ID","comb"),all.x=T)
-  # message(paste0(colnames(counts_ref), collapse = "\t"))
-  
-  #rownames(counts_ref) <- counts_ref$Row.names
-  #counts_ref$ID <- counts_ref$Row.names
-  #counts_ref <- counts_ref[,-1]
-  #message(paste0(colnames(counts_ref), collapse = "\t"))
   message("done")  
   
   message("COUNTS ALT")
-  # counts_alt <- counts_norm[which(rownames(counts_norm) %in% id_alt_all),colnames(counts_norm) %in% rownames(ds_cond_data),drop=F]
-  #counts_alt <- counts_allele_id[which(counts_allele_id$allele=="alt"),]
-  
+
   counts_alt_all <- counts_allele_id[which(counts_allele_id$allele=="alt"),,drop=F]
   counts_alt <- counts_alt_all[,colnames(counts_alt_all) %in% rownames(ds_cond_data),drop=F]
-  
-  # #message
-  # message(paste0(colnames(counts_alt), collapse = "\t"))
-  # message(paste0(colnames(counts_alt_all), collapse="\t"))
-  # message(nrow(counts_allele_id[which(counts_allele_id$allele=="alt"),]))
   
   colnames(counts_alt) <- paste0(colnames(counts_alt),"_alt")
   counts_alt$comb <- paste0(counts_alt_all$SNP,"_",counts_alt_all$window,"_",counts_alt_all$strand,"_",counts_alt_all$haplotype)
   counts_alt$ID <- rownames(counts_alt)
-  
-  # #message
-  # message("Merge INFO")
-  # message(paste0("counts_alt IDs: ", paste0(head(counts_alt$ID), collapse = "\t")))
-  # message(paste0("snp_data_pairs IDs: ", paste0(head(snp_data_pairs$ID), collapse = "\t")))
-  # message(paste0("counts_alt comb: ", paste0(head(counts_alt$comb), collapse = "\t")))
-  # message(paste0("snp_data_pairs comb: ", paste0(head(snp_data_pairs$comb[which(snp_data_pairs$ID %in% rownames(counts_alt))]), collapse = "\t")))
-  # message(paste0(colnames(counts_alt), collapse="\t"))
-  # message(paste0(colnames(snp_data_pairs),collapse="\t"))
-  
-  #counts_alt <- merge(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand","haplotype","comb")], by=c("comb","ID") ,all.x=T)
   counts_alt <- merge(counts_alt, snp_data_pairs[which(snp_data_pairs$ID %in% rownames(counts_alt)),c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand","haplotype","comb")],by=c("ID","comb"),all.x=T)
   
   message("done")
-  #counts_alt <- unique(counts_alt)
-  message(paste0(colnames(counts_alt), collapse = "\t"))
-  message(paste0(colnames(counts_ref), collapse = "\t"))
-  #rownames(counts_alt) <- counts_alt$Row.names
-  #counts_alt <- counts_alt[,-1]
-  
+  # message(paste0(colnames(counts_alt), collapse = "\t"))
+  # message(paste0(colnames(counts_ref), collapse = "\t"))
+ 
   counts_ref_alt <- merge(counts_ref, counts_alt, by=c("SNP","chr","pos","ref_allele","alt_allele","window","strand","haplotype","comb"), all=T)
   
   message("counts merged") 
-  # message(paste0(colnames(counts_ref_alt),collapse = "\t"))
-  
+
   column_order <- data.frame(allele=factor(rep(c("ref","alt"),((dna_reps+rna_reps))), levels = c("ref","alt")),
                              sample=factor(rep(c(rownames(ds_cond_data)[which(ds_cond_data$condition=="DNA")], rownames(ds_cond_data)[which(ds_cond_data$condition==celltype)]),each=total_cond)))
   column_order$order <- paste0(column_order$sample,"_",column_order$allele)
@@ -828,18 +690,13 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   message(paste0(colnames(counts_ref_alt), collapse = "\t"))
   counts_ref_alt <- counts_ref_alt[,c("ID.x","SNP","chr","pos","ref_allele","alt_allele","allele.x","window","strand", "haplotype",column_order$order)]
   colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand","haplotype",column_order$order)
-  # message(paste0("counts_ref_alt: ", nrow(counts_ref_alt)))
-  
+
   counts_comp <- counts_ref_alt[complete.cases(counts_ref_alt[,column_order$order]),]
   counts_mat <- as.matrix(counts_comp[,column_order$order])
-  # message(paste0("counts_mat_og: " ,nrow(counts_mat)))
   ids_comp <- counts_comp$ID
   
   message("ids pulled")
-  # message(paste0("tot_id: ",length(ids_comp)))
-  # counts_mat <- counts_mat[complete.cases(counts_mat),]
-  # message(paste0("counts_mat_comp: ",nrow(counts_mat)))
-  
+ 
   # Set Design definition
   design <- ~sample + allele
   
@@ -864,6 +721,16 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   
   message("combining data")
   res_comp <- merge(out, res.diff, by="ID", all.y=T)
+  
+  OE_threshold <- -log10(cutoff)
+
+  glm_stats <- res_comp
+  glm_stats$p_orig <- 10^(-glm_stats$Skew_logP)
+  glm_stats$OE <- ifelse(glm_stats$A_logPadj_BH > OE_threshold | glm_stats$B_logPadj_BH > OE_threshold, T, F)
+  
+  glm_update <- glm_stats[which(glm_stats$OE),c("ID","p_orig")]
+  glm_update$Skew_logFDR_act <- -log10(p.adjust(glm_update$p_orig, method = "BH"))
+  res_comp <- merge(res_comp, glm_update[,c("ID","Skew_logFDR_act")], by="ID", all=T)
   
   return(res_comp)
 }
@@ -975,7 +842,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
     guides(colour = guide_legend(override.aes = list(size=3,alpha=.7), title=NULL)) +
     geom_abline(intercept = 0, slope = 0,linetype = 1, size=.75, color=rgb(255,140,0,150,maxColorValue=255))
 
-  message("colors set")
+  # message("colors set")
   # cbPalette <- c("#56B4E9","#F84763","#009E73", "#CAA674", "#0072B2", "#D55E00", "#CC79A7","#8057BB","#FBAD12","#999999")
   # cbPalette <- c("#3F47C9","#4274CE","#4F97BB","#64AC99","#7EB976","#9EBE5A","#BEBB48","#D9AE3E","#E69036","#E35F2D","#DB2823")
   # cbPalette <- c("#8DD3C7","#FFFFB3","#BEBADA","#FB8072","#80B1D3","#FDB462","#B3DE69","#FCCDE5","#D9D9D9","#BC80BD","#CCEBC5","#FFED6F")
@@ -1089,7 +956,7 @@ MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, neg
     if(celltype=="DNA" | celltype %in% exclList ) next
     message(celltype)
     output_tmp<-full_output[[celltype]]
-    message(paste(dim(output_tmp), collapse="\t"))
+    # message(paste(dim(output_tmp), collapse="\t"))
     plot_list<-plot_logFC(output_tmp, celltype, negCtrlName, posCtrlName, color_table)
     if(plotSave==F){
       plot_list[[1]]
