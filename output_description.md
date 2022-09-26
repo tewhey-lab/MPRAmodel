@@ -86,19 +86,19 @@
                 <li> haplotype </li>
                 <li> A_Ctrl_Mean -- mean of normalized plasmid counts for the reference allele </li>
                 <li> A_Exp_Mean -- mean of normalized RNA counts for the reference allele </li>
-                <li> A_log2FC -- log2FoldChange for the reference allele </li>
+                <li> A_log2FC -- Reference allele activity as log2(RNA/DNA)  </li>
                 <li> A_log2FC_SE -- standard error of the log2FC for the reference allele </li>
-                <li> A_logP -- -log10(pvalue) for the reference allele </li>
-                <li> A_logPadj_BH -- -log10 Benjamini Hochberg adjusted pvalue for the reference allele </li>
-                <li> A_logPadj_BF -- -log10 Bonferroni adjusted pvalue for the reference allele </li>
+                <li> A_logP -- -log10(pvalue) for the reference allele activity </li>
+                <li> A_logPadj_BH -- -log10 Benjamini Hochberg adjusted pvalue for the reference allele activity </li>
+                <li> A_logPadj_BF -- -log10 Bonferroni adjusted pvalue for the reference allele activity </li>
                 <li> B_Ctrl_Mean -- mean of normalized plasmid counts for the alternate allele </li>
                 <li> B_Exp_Mean -- mean of normalized RNA counts for the alternate allele </li>
-                <li> B_log2FC -- log2FoldChange for the alternate allele </li>
+                <li> B_log2FC -- Alternate allele activity as log2(RNA/DNA)  </li>
                 <li> B_log2FC_SE -- standard error of the log2FC for the alternate allele </li>
-                <li> B_logP -- -log10(pvalue) for the alternate allele </li>
-                <li> B_logPadj_BH -- -log10 Benjamini Hochberg adjusted pvalue for the alternate allele </li>
-                <li> B_logPadj_BF -- -log10 Bonferroni adjusted pvalue for the alternate allele </li>
-                <li> Log2Skew -- `B_log2FC - A_log2FC` </li>
+                <li> B_logP -- -log10(pvalue) for the alternate allele activity </li>
+                <li> B_logPadj_BH -- -log10 Benjamini Hochberg adjusted pvalue for the alternate allele activity </li>
+                <li> B_logPadj_BF -- -log10 Bonferroni adjusted pvalue for the alternate allele activity </li>
+                <li> Log2Skew -- Allelic Skew `B_log2FC - A_log2FC` </li>
                 <li> LogSkew_SE -- `sqrt(A_log2FC_SE^2 + B_log2FC_SE^2)` </li>
                 <li> Skew_logP -- -log10(pvalue) from the tTest </li>
                 <li> Skew_logFDR -- -log10 Benjamini Hochberg adjusted pvalue (A or B must have significance) </li>
