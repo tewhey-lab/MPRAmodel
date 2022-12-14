@@ -295,7 +295,7 @@ tagSig <- function(dds_results, dds_rna, cond_data, exclList=c(), prior=F){
 # prior           : LOGICAL default T, use betaPrior=T when calculating the celltype specific dispersions.
 ## OUTPUT: writes duplicate output and ttest files for each celltype
 dataOut <- function(countsData, attributesData, conditionData, exclList = c(), altRef = T, file_prefix, method = 'ss',negCtrlName="negCtrl",
-                    tTest=T, DEase=T, cSkew=T, correction="BH", cutoff=0.01, upDisp=T, prior=F){
+                    tTest=T, DEase=T, cSkew=T, correction="BH", cutoff=0.01, upDisp=T, prior=F, paired=F){
   counts_data <- countsData[,c("Barcode","Oligo",rownames(conditionData))]
   message(paste0(colnames(counts_data), collapse = "\t"))
   count_data <- oligoIsolate(counts_data, file_prefix)
@@ -394,7 +394,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
       message("Writing T-Test Results File")
       outA<-cellSpecificTtest(attributesData, counts_norm_sp, dups_output, ctrl_mean, exp_mean, ctrl_cols, exp_cols, altRef, correction, cutoff, prior)
       full_output_var[[celltype]]<-outA
-      write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
+      write.table(outA,paste0("results/", file_prefix, "_", celltype, "_emVAR_ttest_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
       # write.table(attributesData, "results/ttest_attributes.txt", row.names = F, quote = F, sep = "\t")
       # write.table(counts_norm_sp, paste0("results/ttest_",celltype,"_norm_counts.txt"), quote = F, sep = "\t")
       # write.table(dups_output, "results/ttest_dups_out.txt", quote = F, sep = "\t")
@@ -406,8 +406,8 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
       # write.table(counts_norm_DE, "results/counts_DE_passed.txt", row.names=T, col.names=T, quote = F, sep = "\t")
       # write.table(attributesData, "results/attributes_passed.txt", row.names=F, quote = F, sep = "\t")
       # write.table(dups_output, "results/de_duped_passed.txt", quote=F, sep = "\t")
-      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output,prior, cutoff)
-      write.table(outB,paste0("results/", file_prefix, "_", celltype, "_DE_ase_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
+      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output,prior, cutoff, paired)
+      write.table(outB,paste0("results/", file_prefix, "_", celltype, "_emVAR_glm_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
     }
 
     message("Writing bed File")
@@ -587,7 +587,7 @@ cellSpecificTtest<-function(attributesData, counts_norm, dups_output, ctrl_mean,
 
 ### Function to perform DESeq version of Allelic Skew
 
-DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_output,prior, cutoff){
+DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_output,prior, cutoff, paired=F){
   
   ds_cond_data <- as.data.frame(conditionData[which(conditionData$condition=="DNA" | conditionData$condition==celltype),,drop=F])
   
@@ -704,13 +704,42 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   message("Running DESeq")
   dds <- DESeqDataSetFromMatrix(counts_mat, samps, design)
   
-  design(dds) <- ~material + material:allele
-  sizeFactors(dds) <- rep(1, (dna_reps+rna_reps)*total_cond)
+  if(paired==F){
+    design(dds) <- ~material + allele + material:allele
+
+    dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
+
+  }
   
-  dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
+  if(paired==T){
+    message("running paired samples")
+    
+    sample_lets <- c(rep(LETTERS[1:dna_reps], each=total_cond), rep(LETTERS[1:rna_reps], each=total_cond))
+    dds$sample.n <- as.factor(sample_lets)
+    
+    design(dds) <- ~material + allele + material:sample.n + material:allele
+    sizeFactors(dds) <- rep(1, (dna_reps+rna_reps)*total_cond)
+    
+    if(dna_reps != rna_reps){
+      warning("Number of DNA replicates and RNA replicates unequal. Using the lower number of replicates to run paired samples. If you want to avoid this run MPRAmodel with `paired=F`")
+      mm <- model.matrix(~material + allele + material:sample.n + material:allele, colData(dds))
+      col_mm <- ncol(mm)
+      mm <- mm[,c(1:((min(dna_reps,rna_reps))*2),(col_mm-1),col_mm)]
+      dds <- DESeq(dds, full = mm, fitType = "local", minReplicatesForReplace=Inf)
+    }
+    else{
+    dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
+    }
+
+    #Get the skew results
+    # cell_res <- paste0("condition",celltype,".countalt")
+    message(paste0(resultsNames(dds), collapse = "\t"))
+    # cf <- 1/(min(dna_reps,rna_reps))
+    # res.expr <- results(dds, contrast=c(0,0,rep(c(-cf,cf),min(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
+  }
   
-  message(paste0(resultsNames(dds), collapse = "\t")) 
-  res.diff <- results(dds, contrast=list("materialRNA.allelealt", "materialDNA.allelealt"), cooksCutoff=FALSE, independentFiltering=FALSE)
+  res.diff <- results(dds, name="materialRNA.allelealt",cooksCutoff=F,independentFiltering=F)
+  
   res.diff <- as.data.frame(res.diff)[,-1]
   colnames(res.diff) <- c("Log2Skew","Skew_SE","skewStat","Skew_logP","Skew_logFDR")
   
@@ -880,7 +909,7 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
 # altRef          : Logical, default T indicating sorting by alt/ref, if sorting ref/alt set to F
 # method          : Method to be used to normalize the data. 4 options - summit shift normalization 'ss', remove the outliers before DESeq normalization 'ro'
   # perform normalization for negative controls only 'nc', median of ratios method used by DESeq 'mn'
-MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", exclList=c(), plotSave=T, altRef=T, method = 'ss', tTest=T, DEase=T, cSkew=T, correction="BH", cutoff=0.01, upDisp=T, prior=F, raw=T, color_table, ...){
+MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, negCtrlName="negCtrl", posCtrlName="expCtrl", projectName="MPRA_PROJ", exclList=c(), plotSave=T, altRef=T, method = 'ss', tTest=T, DEase=T, cSkew=T, correction="BH", cutoff=0.01, upDisp=T, prior=F, raw=T, paired=F, color_table, ...){
   file_prefix <- filePrefix
   # Make sure that the plots and results directories are present in the current directory
   mainDir <- getwd()
@@ -889,7 +918,7 @@ MPRAmodel <- function(countsData, attributesData, conditionData, filePrefix, neg
   # Resolve any multi-project conflicts, run normalization, and write celltype specific results files
   attributesData <- addHaplo(attributesData, negCtrlName, posCtrlName, projectName)
   message("running DESeq")
-  analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName, tTest, DEase, cSkew, correction, cutoff, upDisp, prior)
+  analysis_out <- dataOut(countsData, attributesData, conditionData, altRef=altRef, exclList, file_prefix, method, negCtrlName, tTest, DEase, cSkew, correction, cutoff, upDisp, prior, paired)
   cond_data <- conditionStandard(conditionData)
   n <- length(levels(cond_data$condition))
   full_output <- analysis_out[1:(n-1)]
