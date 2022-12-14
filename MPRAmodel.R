@@ -407,7 +407,12 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
       # write.table(attributesData, "results/attributes_passed.txt", row.names=F, quote = F, sep = "\t")
       # write.table(dups_output, "results/de_duped_passed.txt", quote=F, sep = "\t")
       outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output,prior, cutoff, paired)
-      write.table(outB,paste0("results/", file_prefix, "_", celltype, "_emVAR_glm_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
+      if(paired==F){
+        write.table(outB,paste0("results/", file_prefix, "_", celltype, "_emVAR_glm_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
+      }
+      if(paired==T){
+        write.table(outB,paste0("results/", file_prefix, "_", celltype, "_emVAR_glm_paired_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
+      }
     }
 
     message("Writing bed File")
