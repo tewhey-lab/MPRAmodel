@@ -713,6 +713,8 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
     design(dds) <- ~material + allele + material:allele
 
     dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
+    
+    res.diff <- results(dds, name="materialRNA.allelealt",cooksCutoff=F,independentFiltering=F)
 
   }
   
@@ -722,12 +724,12 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
     sample_lets <- c(rep(LETTERS[1:dna_reps], each=total_cond), rep(LETTERS[1:rna_reps], each=total_cond))
     dds$sample.n <- as.factor(sample_lets)
     
-    design(dds) <- ~material + allele + material:sample.n + material:allele
+    design(dds) <- ~material + material:sample.n + material:allele
     sizeFactors(dds) <- rep(1, (dna_reps+rna_reps)*total_cond)
     
     if(dna_reps != rna_reps){
       warning("Number of DNA replicates and RNA replicates unequal. Using the lower number of replicates to run paired samples. If you want to avoid this run MPRAmodel with `paired=F`")
-      mm <- model.matrix(~material + allele + material:sample.n + material:allele, colData(dds))
+      mm <- model.matrix(~material + material:sample.n + material:allele, colData(dds))
       col_mm <- ncol(mm)
       mm <- mm[,c(1:((min(dna_reps,rna_reps))*2),(col_mm-1),col_mm)]
       dds <- DESeq(dds, full = mm, fitType = "local", minReplicatesForReplace=Inf)
@@ -739,11 +741,11 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
     #Get the skew results
     # cell_res <- paste0("condition",celltype,".countalt")
     message(paste0(resultsNames(dds), collapse = "\t"))
-    # cf <- 1/(min(dna_reps,rna_reps))
-    # res.expr <- results(dds, contrast=c(0,0,rep(c(-cf,cf),min(dna_reps,rna_reps)-1),-1/total_cond,1/total_cond))
+    
+    res.diff <- results(dds, contrast=list("materialRNA.allelealt","materialDNA.allelealt"), cooksCutoff=F, independentFiltering=F)
   }
   
-  res.diff <- results(dds, name="materialRNA.allelealt",cooksCutoff=F,independentFiltering=F)
+  # res.diff <- results(dds, name="materialRNA.allelealt",cooksCutoff=F,independentFiltering=F)
   
   res.diff <- as.data.frame(res.diff)[,-1]
   colnames(res.diff) <- c("Log2Skew","Skew_SE","skewStat","Skew_logP","Skew_logFDR")
