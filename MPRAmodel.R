@@ -403,7 +403,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     if(DEase==T){
       message("Writing DESeq Allelic Skew Results File")
       if(paired==F){
-        cond_pass <- conditionData
+        cond_pass <- condition_table
       }
       if(paired==T){
         plas_row <- length(conditionData$condition[which(conditionData=="DNA")])
