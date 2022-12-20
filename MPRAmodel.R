@@ -456,7 +456,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
             cond_pass <- condition_table[which(!rownames(condition_table)%in%cell_drop),]
           }
         }
-        counts_norm_DE <- counts_norm_DE[which(colnames(counts_norm_DE) %in% rownames(cond_pass)),]
+        counts_norm_DE <- counts_norm_DE[,which(colnames(counts_norm_DE) %in% rownames(cond_pass))]
       }
       outB <- DESkew(cond_pass, counts_norm_DE, attributesData, celltype, dups_output,prior, cutoff, paired)
       if(paired==F){
@@ -747,6 +747,7 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
   message(paste0(colnames(counts_ref_alt), collapse = "\t"))
   counts_ref_alt <- counts_ref_alt[,c("ID.x","SNP","chr","pos","ref_allele","alt_allele","allele.x","window","strand", "haplotype",column_order$order)]
   colnames(counts_ref_alt) <- c("ID","SNP","chr","pos","ref_allele","alt_allele","allele","window","strand","haplotype",column_order$order)
+  message(paste0(dim(counts_ref_alt), collapse = "\t"))
 
   counts_comp <- counts_ref_alt[complete.cases(counts_ref_alt[,column_order$order]),]
   counts_mat <- as.matrix(counts_comp[,column_order$order])
