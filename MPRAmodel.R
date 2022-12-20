@@ -402,11 +402,63 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
 
     if(DEase==T){
       message("Writing DESeq Allelic Skew Results File")
-      # write.table(conditionData, "results/condition_passed.txt", row.names = T, col.names = T, quote = F, sep="\t")
-      # write.table(counts_norm_DE, "results/counts_DE_passed.txt", row.names=T, col.names=T, quote = F, sep = "\t")
-      # write.table(attributesData, "results/attributes_passed.txt", row.names=F, quote = F, sep = "\t")
-      # write.table(dups_output, "results/de_duped_passed.txt", quote=F, sep = "\t")
-      outB <- DESkew(conditionData, counts_norm_DE, attributesData, celltype, dups_output,prior, cutoff, paired)
+      if(paired==F){
+        cond_pass <- conditionData
+      }
+      if(paired==T){
+        plas_row <- length(conditionData$condition[which(conditionData=="DNA")])
+        message(plas_row)
+        cell_row <- length(conditionData$condition[which(conditionData$condition==celltype)])
+        message(cell_row)
+        if(plas_row==cell_row){
+          cond_pass <- conditionData
+        }
+        else if(plas_row!=cell_row){
+          if(plas_row > cell_row){
+            drop_num <- plas_row - cell_row
+            message(paste0("dropping ", drop_num," DNA replicates for paired GLM analysis"))
+            plas_ids <- data.frame(matrix(ncol = 2, nrow=plas_row))
+            colnames(plas_ids) <- c("rep","bc_count")
+            plas_ids$rep <- rownames(conditionData)[which(conditionData$condition=="DNA")]
+            
+            for(id in cell_ids$rep){
+              # message(id)
+              # message(sum(counts_data[,id] > 0))
+              
+              plas_ids[plas_ids$rep==id,"bc_count"] <- sum(counts_data[,id] > 0)
+            }
+            plas_ids <- plas_ids[order(plas_ids$bc_count),]
+            
+            plas_drop <- plas_ids$rep[1:drop_num]
+            
+            message(paste0("Dropping: ",plas_drop, collapse = "\t"))
+            cond_pass <- condition_table[which(!rownames(condition_table)%in%plas_drop),]
+          }
+          else if(cell_row > plas_row){
+            drop_num <- cell_row - plas_row
+            message(paste0("dropping ", drop_num," ",celltype, " replicates for paired GLM analysis"))
+            cell_ids <- data.frame(matrix(ncol = 2, nrow=cell_row))
+            colnames(cell_ids) <- c("rep","bc_count")
+            cell_ids$rep <- rownames(conditionData)[which(conditionData$condition==celltype)]
+            message(paste0(cell_ids$rep, collapse = "\t"))
+          
+            message(class(cell_ids))
+            
+            for(id in cell_ids$rep){
+             
+              cell_ids[cell_ids$rep==id,"bc_count"] <- sum(counts_data[,id] > 0)
+            }
+            cell_ids <- cell_ids[order(cell_ids$bc_count),]
+            
+            cell_drop <- cell_ids$rep[1:drop_num]
+            
+            message(paste0("Dropping: ",cell_drop, collapse = "\t"))
+            cond_pass <- condition_table[which(!rownames(condition_table)%in%cell_drop),]
+          }
+        }
+        counts_norm_DE <- counts_norm_DE[which(colnames(counts_norm_DE) %in% rownames(cond_pass)),]
+      }
+      outB <- DESkew(cond_pass, counts_norm_DE, attributesData, celltype, dups_output,prior, cutoff, paired)
       if(paired==F){
         write.table(outB,paste0("results/", file_prefix, "_", celltype, "_emVAR_glm_", fileDate(),".out"), row.names=F, col.names=T, sep="\t", quote=F)
       }
@@ -727,16 +779,16 @@ DESkew <- function(conditionData, counts_norm, attributesData, celltype, dups_ou
     design(dds) <- ~material + material:sample.n + material:allele
     sizeFactors(dds) <- rep(1, (dna_reps+rna_reps)*total_cond)
     
-    if(dna_reps != rna_reps){
-      warning("Number of DNA replicates and RNA replicates unequal. Using the lower number of replicates to run paired samples. If you want to avoid this run MPRAmodel with `paired=F`")
-      mm <- model.matrix(~material + material:sample.n + material:allele, colData(dds))
-      col_mm <- ncol(mm)
-      mm <- mm[,c(1:((min(dna_reps,rna_reps))*2),(col_mm-1),col_mm)]
-      dds <- DESeq(dds, full = mm, fitType = "local", minReplicatesForReplace=Inf)
-    }
-    else{
+    # if(dna_reps != rna_reps){
+    #   warning("Number of DNA replicates and RNA replicates unequal. Using the lower number of replicates to run paired samples. If you want to avoid this run MPRAmodel with `paired=F`")
+    #   mm <- model.matrix(~material + material:sample.n + material:allele, colData(dds))
+    #   col_mm <- ncol(mm)
+    #   mm <- mm[,c(1:((min(dna_reps,rna_reps))*2),(col_mm-1),col_mm)]
+    #   dds <- DESeq(dds, full = mm, fitType = "local", minReplicatesForReplace=Inf)
+    # }
+    # else{
     dds <- DESeq(dds, fitType = "local", minReplicatesForReplace = Inf)
-    }
+    # }
 
     #Get the skew results
     # cell_res <- paste0("condition",celltype,".countalt")
