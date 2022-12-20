@@ -411,7 +411,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
         cell_row <- length(conditionData$condition[which(conditionData$condition==celltype)])
         message(cell_row)
         if(plas_row==cell_row){
-          cond_pass <- conditionData
+          cond_pass <- condition_table
         }
         else if(plas_row!=cell_row){
           if(plas_row > cell_row){
