@@ -31,7 +31,7 @@
                <li> padj -- BH adjusted pvalue of oligo activity  </li>
         </ul>
       </details>
- - `<proj>_<cell>_emVAR_<date>.out`
+ - `<proj>_<cell>_emVAR_ttest_<date>.out`
       - Expression-Modulating Variants (emVAR) calculated by tTest
       + <details>
           <summary>Columns include: </summary>
@@ -69,7 +69,7 @@
         </ul>
       </details>
           <ul> <li>Produced when running <code>dataOut</code> function if <code>tTest=T</code> is used. </li> </ul>
- - `<proj>_<cell>_DE_ase_<date>.out`
+ - `<proj>_<cell>_emVAR_glm_[paired]_<date>.out`
       - emVAR calculated by DESeq2 glm
       + <details>
             <summary>Columns include: </summary>
