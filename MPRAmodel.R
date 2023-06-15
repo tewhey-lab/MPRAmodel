@@ -331,6 +331,11 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
   if(upDisp==T){
     cellsp_dds <- tagSig(dds_results, dds_rna, cond_data, exclList, prior)
   }
+  
+  counts_norm_all <- counts(dds_results, normalized = T)
+  
+  write.table(counts_norm_all,paste0("results/", file_prefix, "_", fileDate(),"_normalized_counts.out"), quote = F, sep = "\t")
+  
 
   for (celltype in levels(cond_data$condition)) {
     if(celltype == "DNA" | celltype %in% exclList) next
@@ -341,6 +346,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     }
     
     counts_norm <- counts(dds_results, normalized = T)
+    counts_norm <- counts_norm[,colnames(counts_norm) %in% rownames(condition_data)[which(condition_table$condition %in% c("DNA",celltype))]]
     
     write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(),"_",celltype, "_normalized_counts.out"), quote = F, sep = "\t")
     
@@ -914,13 +920,13 @@ plot_logFC <- function(full_output, sample, negCtrlName="negCtrl", posCtrlName="
   message(paste(dim(exp_values), collapse = "\t"))
   exp_values$padj[is.na(exp_values$padj)]<-1
   exp_values$sig<-"Not Significant"
-  exp_values$sig[exp_values$padj <= 0.00001]<-"Active"
-  levels(exp_values$sig)<-c("Not Significant", "Active")
-  exp_values$sig<-factor(exp_values$sig,levels=c("Not Significant", "Active"))
+  exp_values$sig[exp_values$padj <= 0.00001]<-"Significant (BH adjusted p <= 0.00001)"
+  levels(exp_values$sig)<-c("Not Significant", "Significant (BH adjusted p <= 0.00001)")
+  exp_values$sig<-factor(exp_values$sig,levels=c("Not Significant", "Significant (BH adjusted p <= 0.00001)"))
 
   tmp_plotA<-ggplot(exp_values,aes(x=ctrl_mean,y=log2FoldChange,color=sig)) +
     theme_bw() + theme(panel.grid.major = element_line(size = .25,colour = rgb(0,0,0,75,maxColorValue=255)), panel.grid.minor = element_blank()) +
-    scale_colour_manual(values=c("Not Significant"=rgb(0,0,0,200,maxColorValue=255),"Active"=rgb(55,126,184,255,maxColorValue=255))) +
+    scale_colour_manual(values=c("Not Significant"=rgb(0,0,0,200,maxColorValue=255),"Significant (BH adjusted p <= 0.00001)"=rgb(55,126,184,255,maxColorValue=255))) +
     geom_point(alpha = .3,size=1) +
     scale_x_log10() +
     #coord_cartesian(xlim = c(10, 1000),ylim = c(-1.5,7.5)) +
