@@ -2,6 +2,7 @@
 #Read in Count and Attributes tables
 attr_PROJ <- read.delim("full/path/to/attributes/file", stringsAsFactors=F)
 count_PROJ <- read.delim("/full/path/to/count/table", stringsAsFactors=F)
+cond_PROJ <- read.delim("/full/path/to/condition/table", stringsAsFactors=F, header=F, row.names=1)
 
 #Create Condition Table if not made in the MPRAcount pipeline
 #This is an example of what it would look like with 
