@@ -3,6 +3,6 @@ plasmid_r2	DNA
 plasmid_r3	DNA
 plasmid_r4	DNA
 K562_r1	K562
+K562_r2	K562
+K562_r3	K562
 K562_r4	K562
-K562_r6	K562
-K562_r7	K562
