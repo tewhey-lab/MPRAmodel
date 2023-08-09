@@ -346,7 +346,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
     }
     
     counts_norm <- counts(dds_results, normalized = T)
-    counts_norm <- counts_norm[,colnames(counts_norm) %in% rownames(condition_data)[which(condition_table$condition %in% c("DNA",celltype))]]
+    counts_norm <- counts_norm[,colnames(counts_norm) %in% rownames(cond_data)[which(condition_table$condition %in% c("DNA",celltype))]]
     
     write.table(counts_norm,paste0("results/", file_prefix, "_", fileDate(),"_",celltype, "_normalized_counts.out"), quote = F, sep = "\t")
     
