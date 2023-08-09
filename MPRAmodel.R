@@ -427,7 +427,7 @@ dataOut <- function(countsData, attributesData, conditionData, exclList = c(), a
             colnames(plas_ids) <- c("rep","bc_count")
             plas_ids$rep <- rownames(conditionData)[which(conditionData$condition=="DNA")]
             
-            for(id in cell_ids$rep){
+            for(id in plas_ids$rep){
               # message(id)
               # message(sum(counts_data[,id] > 0))
               
